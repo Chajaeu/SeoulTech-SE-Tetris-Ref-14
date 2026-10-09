@@ -20,4 +20,27 @@ public final class Cell {
         this.item = item;
         this.type = type;
     }
+
+
+    // getter 3종
+    public char getMark() {
+        return mark;
+    }
+
+    public boolean isItem() {
+        return item;
+    }
+
+    public char getType() {
+        return type;
+    }
+
+
+    // 빈칸 여부 확인
+    public boolean isEmpty() {
+        if (type == ' '){
+            return true;
+        }
+        return false;
+    }
 }
