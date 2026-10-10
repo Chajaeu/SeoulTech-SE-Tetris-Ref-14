@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.image.Image?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.VBox?>
+
+
+<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="720.0" prefWidth="1280.0" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1">
+   <children>
+      <ImageView fitHeight="720.0" fitWidth="1280.0" layoutX="0" layoutY="0" pickOnBounds="true" preserveRatio="true">
+         <image>
+            <Image url="@../img/Main_Background.png" />
+         </image>
+      </ImageView>
+      <VBox alignment="TOP_CENTER" layoutY="150" prefHeight="249.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0">
+         <children>
+            <ImageView fitHeight="249.0" fitWidth="456.0" pickOnBounds="true" preserveRatio="true">
+               <image>
+                  <Image url="@../img/Main_Logo.png" />
+               </image>
+            </ImageView>
+         </children>
+      </VBox>
+      <VBox alignment="TOP_CENTER" layoutY="350" prefHeight="374.4" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" spacing="12">
+         <children>
+            <Button fx:id = "startButton" alignment="CENTER" contentDisplay="CENTER" mnemonicParsing="false" prefHeight="48.0" prefWidth="200.0" style="-fx-background-color: linear-gradient(to bottom, #FFF06A 0%, #FFD329 45%, #FF9D0A 100%); -fx-text-fill: #10204A; -fx-font-family: &quot;Arial Black&quot;; -fx-font-size: 15px; -fx-font-weight: bold; -fx-border-color: #10204A; -fx-border-width: 3px; -fx-border-radius: 8px; -fx-background-radius: 8px; -fx-padding: 10px 25px 10px 25px; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.50), 6, 0.2, 0, 4);" text="GAME START" textAlignment="CENTER" />
+            <Button fx:id = "settingButton" alignment="CENTER" contentDisplay="CENTER" mnemonicParsing="false" prefHeight="48.0" prefWidth="200.0" style="-fx-background-color: linear-gradient(to bottom, #F7FBFF 0%, #DCEAF5 55%, #B8CBDD 100%); -fx-text-fill: #10204A; -fx-font-family: &quot;Arial Black&quot;; -fx-font-size: 15px; -fx-font-weight: bold; -fx-border-color: #173765; -fx-border-width: 3px; -fx-border-radius: 8px; -fx-background-radius: 8px; -fx-padding: 10px 25px 10px 25px; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.40), 6, 0.2, 0, 4);" text="SETTING" textAlignment="CENTER" />
+            <Button fx:id = "scoreboardButton" alignment="CENTER" contentDisplay="CENTER" mnemonicParsing="false" prefHeight="48.0" prefWidth="200.0" style="-fx-background-color: linear-gradient(to bottom, #EEF8FF 0%, #C9E3F3 55%, #9FC4DC 100%); -fx-text-fill: #10204A; -fx-font-family: &quot;Arial Black&quot;; -fx-font-size: 15px; -fx-font-weight: bold; -fx-border-color: #173765; -fx-border-width: 3px; -fx-border-radius: 8px; -fx-background-radius: 8px; -fx-padding: 10px 25px 10px 25px; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.50), 6, 0.2, 0, 4);" text="SCORE BOARD" textAlignment="CENTER" />
+            <Button fx:id = "exitButton" alignment="CENTER" contentDisplay="CENTER" mnemonicParsing="false" prefHeight="48.0" prefWidth="200.0" style="-fx-background-color: linear-gradient(to bottom, #EEF8FF 0%, #C9E3F3 55%, #9FC4DC 100%); -fx-text-fill: #10204A; -fx-font-family: &quot;Arial Black&quot;; -fx-font-size: 15px; -fx-font-weight: bold; -fx-border-color: #173765; -fx-border-width: 3px; -fx-border-radius: 8px; -fx-background-radius: 8px; -fx-padding: 10px 25px 10px 25px; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.50), 6, 0.2, 0, 4);" text="EXIT" textAlignment="CENTER" />
+         </children>
+      </VBox>
+   </children>
+</AnchorPane>
