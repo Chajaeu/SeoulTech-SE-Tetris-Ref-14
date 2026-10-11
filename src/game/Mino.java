@@ -59,5 +59,20 @@ public class Mino {
         }
         return result;
     }
+
+
+    // getter
+    // 블럭 종류
+    public char getType() { return type; }
+    // 현위치
+    public int getRow() { return row; }
+    public int getCol() { return col; }
+    // 직사각형(무게추) 블럭 외에는 size 하나만 받아도 충분
+    public int getSize() { return getHeight(); }
+    public int getHeight() { return shape.length; }
+    public int getWidth() { return shape[0].length; }
+    // 특정 칸 cell 정보
+    public Cell getCell(int row, int col) { return shape[row][col]; }
+    
 }
 
