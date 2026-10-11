@@ -1,18 +1,22 @@
 package seoultech.se.tetris.infra.dto;
 
-import java.awt.event.KeyEvent;
 import java.util.HashSet;
 import java.util.Set;
 
-/** UI ↔ Infra 간에 주고받는 설정 데이터. */
+// UI와 Infra 사이에서 전달하는 설정값
 public class SettingsDTO {
+
     private DisplaySize displaySize = DisplaySize.MEDIUM;
-    private int keyLeft = KeyEvent.VK_LEFT;
-    private int keyRight = KeyEvent.VK_RIGHT;
-    private int keyDown = KeyEvent.VK_DOWN;
-    private int keyRotate = KeyEvent.VK_UP;
-    private int keyDrop = KeyEvent.VK_SPACE;
-    private int keyPause = KeyEvent.VK_P;
+    private Difficulty difficulty = Difficulty.NORMAL;
+
+    // JavaFX KeyCode 이름으로 저장
+    private String keyLeft = "LEFT";
+    private String keyRight = "RIGHT";
+    private String keyDown = "DOWN";
+    private String keyRotate = "UP";
+    private String keyDrop = "SPACE";
+    private String keyPause = "P";
+
     private boolean colorblindMode = false;
 
     public SettingsDTO() {
@@ -22,21 +26,45 @@ public class SettingsDTO {
         return new SettingsDTO();
     }
 
-    /** 잘못된/중복 키 바인딩 및 설정값을 거른다. ESC는 게임 종료 키로 예약한다(팀 합의 예정). */
+    // 설정값이 올바른지 검사
     public boolean isValid() {
-        if (displaySize == null) {
+
+        if (displaySize == null || difficulty == null) {
             return false;
         }
-        int[] keys = { keyLeft, keyRight, keyDown, keyRotate, keyDrop, keyPause };
-        Set<Integer> unique = new HashSet<>();
-        for (int key : keys) {
-            if (key <= 0 || key == KeyEvent.VK_ESCAPE || !unique.add(key)) {
+
+        String[] keys = {
+            keyLeft, keyRight, keyDown,
+            keyRotate, keyDrop, keyPause
+        };
+
+        Set<String> usedKeys = new HashSet<>();
+
+        for (String key : keys) {
+            // 잘못된 키 또는 중복 키 거부
+            if (!isSupportedKey(key) || !usedKeys.add(key)) {
                 return false;
             }
         }
+
         return true;
     }
 
+    // 사용할 수 있는 키인지 확인
+    // ESCAPE는 게임 종료용으로 예약 (팀 합의 필요)
+    private static boolean isSupportedKey(String key) {
+
+        if (key == null) {
+            return false;
+        }
+
+        return key.matches(
+            "LEFT|RIGHT|UP|DOWN|SPACE|ENTER|TAB|BACK_SPACE|"
+            + "[A-Z]|DIGIT[0-9]|NUMPAD[0-9]|F(?:[1-9]|1[0-2])"
+        );
+    }
+
+    // 화면 크기
     public DisplaySize getDisplaySize() {
         return displaySize;
     }
@@ -45,54 +73,70 @@ public class SettingsDTO {
         this.displaySize = displaySize;
     }
 
-    public int getKeyLeft() {
+    // 난이도
+    public Difficulty getDifficulty() {
+        return difficulty;
+    }
+
+    public void setDifficulty(Difficulty difficulty) {
+        this.difficulty = difficulty;
+    }
+
+    // 왼쪽 이동
+    public String getKeyLeft() {
         return keyLeft;
     }
 
-    public void setKeyLeft(int keyLeft) {
+    public void setKeyLeft(String keyLeft) {
         this.keyLeft = keyLeft;
     }
 
-    public int getKeyRight() {
+    // 오른쪽 이동
+    public String getKeyRight() {
         return keyRight;
     }
 
-    public void setKeyRight(int keyRight) {
+    public void setKeyRight(String keyRight) {
         this.keyRight = keyRight;
     }
 
-    public int getKeyDown() {
+    // 아래 이동
+    public String getKeyDown() {
         return keyDown;
     }
 
-    public void setKeyDown(int keyDown) {
+    public void setKeyDown(String keyDown) {
         this.keyDown = keyDown;
     }
 
-    public int getKeyRotate() {
+    // 회전
+    public String getKeyRotate() {
         return keyRotate;
     }
 
-    public void setKeyRotate(int keyRotate) {
+    public void setKeyRotate(String keyRotate) {
         this.keyRotate = keyRotate;
     }
 
-    public int getKeyDrop() {
+    // 즉시 낙하
+    public String getKeyDrop() {
         return keyDrop;
     }
 
-    public void setKeyDrop(int keyDrop) {
+    public void setKeyDrop(String keyDrop) {
         this.keyDrop = keyDrop;
     }
 
-    public int getKeyPause() {
+    // 일시정지
+    public String getKeyPause() {
         return keyPause;
     }
 
-    public void setKeyPause(int keyPause) {
+    public void setKeyPause(String keyPause) {
         this.keyPause = keyPause;
     }
 
+    // 색맹 모드
     public boolean isColorblindMode() {
         return colorblindMode;
     }
