@@ -1,5 +1,63 @@
 package game;
 
 public class Mino {
-    
+    private final char type;
+
+    private int row;
+    private int col;
+
+    private Cell[][] shape;
+
+    // 블럭 생성
+    public Mino(char type) {
+        this.type = type;
+        // 타입에 따른 배열크기 결정(회전 고려 정사각형)
+        int size = type == 'O' ? 2 : type == 'I' ? 4 : 3;
+        shape = emptyShape(size, size);
+        switch (type) {
+            case 'I':
+                fill(1, 0); fill(1, 1); fill(1, 2); fill(1, 3);
+                break;
+            case 'L':
+                fill(0, 2); fill(1, 0); fill(1, 1); fill(1, 2);
+                break;
+            case 'J':
+                fill(0, 0); fill(1, 0); fill(1, 1); fill(1, 2);
+                break;
+            case 'T':
+                fill(0, 1); fill(1, 0); fill(1, 1); fill(1, 2);
+                break;
+            case 'S':
+                fill(0, 1); fill(0, 2); fill(1, 0); fill(1, 1);
+                break;
+            case 'Z':
+                fill(0, 0); fill(0, 1); fill(1, 1); fill(1, 2);
+                break;
+            case 'O':
+                fill(0, 0); fill(0, 1); fill(1, 0); fill(1, 1);
+                break;
+            default:
+                throw new IllegalArgumentException("잘못된 블럭 타입 : " + type);
+        }
+        // 가능한 한 중앙에 맞게 최초 위치 설정
+        row = 0;
+        col = type == 'O' ? 4 : 3;
+    }
+
+    // 일반 블럭 생성 시, 지정 위치에 실제 칸 채우는 함수
+    private void fill(int row, int col) {
+        shape[row][col] = new Cell('O', false, type);
+    }
+
+    // arg로 받은 높이&너비(행렬) 크기로 배열 생성, 빈 cell로 초기화(2*4 사이즈 무게추 고려)
+    private static Cell[][] emptyShape(int height, int width) {
+        Cell[][] result = new Cell[height][width];
+        for (int r = 0; r < height; r++) {
+            for (int c = 0; c < width; c++) {
+                result[r][c] = new Cell();
+            }
+        }
+        return result;
+    }
 }
+

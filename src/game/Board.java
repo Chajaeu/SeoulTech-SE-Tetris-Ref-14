@@ -1,10 +1,15 @@
 package game;
 
 public class Board {
+    // 보드 전체 칸 배열
     private final Cell[][] board;
+
+    // 보드 행렬 길이
     private final int rows;
     private final int cols;
 
+
+    // 보드 크기에 맞게 배열생성 및 빈칸으로 초기화
     public Board(int rows, int cols) {
         this.rows = rows;
         this.cols = cols;

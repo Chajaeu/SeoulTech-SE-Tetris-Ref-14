@@ -1,6 +1,7 @@
 package game;
 
 public final class Cell {
+    // 표시 모양 / 아이템 여부 / 종류
     private final char mark;
     private final boolean item;
     private final char type;
@@ -11,10 +12,12 @@ public final class Cell {
         this(' ', false, ' ');
     }
 
+    // 일반 블럭 생성
     public Cell(char type) {
     this('O', false, type);
     }
 
+    // 아이템 여부 포함
     public Cell(char mark, boolean item, char type) {
         this.mark = mark;
         this.item = item;
