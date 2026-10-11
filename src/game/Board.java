@@ -44,10 +44,33 @@ public class Board {
     }
 
 
+    // arg로 mino를 받는건 move용, cell[][]을 받는건 rotate용
     public boolean canPlace(Mino mino, int row, int col) {
         for (int r = 0; r < mino.getHeight(); r++) {
             for (int c = 0; c < mino.getWidth(); c++){
                 if (mino.getCell(r, c).isEmpty()) {
+                    continue;
+                }
+
+                int boardRow = row + r;
+                int boardCol = col + c;
+
+                if (boardRow < 0 || boardRow >= rows || boardCol < 0 || boardCol >= cols) {
+                    return false;
+                }
+
+                if (!board[boardRow][boardCol].isEmpty()) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    public boolean canPlace(Cell[][] shape, int row, int col) {
+        for (int r = 0; r < shape.length; r++) {
+            for (int c = 0; c < shape.length; c++){
+                if (shape[r][c].isEmpty()) {
                     continue;
                 }
 

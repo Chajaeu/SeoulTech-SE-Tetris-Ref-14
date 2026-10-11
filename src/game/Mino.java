@@ -80,5 +80,23 @@ public class Mino {
     public void moveRight() {col++;}
     public void moveDown() {row++;}
     public void moveUp() {row--;}     // 회전 시 사용 가능
+
+
+
+
+    public Cell[][] createRotatedCW() {
+        int size = getSize();
+        Cell[][] rotated = new Cell[size][size];
+        for (int r = 0; r < size; r++) {
+            for (int c = 0; c < size; c++) {
+                rotated[c][size - 1 - r] = shape[r][c];
+            }
+        }
+        return rotated;
+    }
+
+    public void setShape(Cell[][] shape) {
+        this.shape = shape;
+    }
 }
 

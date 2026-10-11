@@ -97,4 +97,18 @@ public class Game {
         }
     }
    
+
+    // rotateCheck&rotate
+    public void rotateCW() {
+        Cell[][] rotated = currentMino.createRotatedCW();
+        int row = currentMino.getRow();
+        int col = currentMino.getCol();
+        if (board.canPlace(rotated, row, col)) {
+            currentMino.setShape(rotated);
+        } 
+        else if (board.canPlace(rotated, row - 1, col)) {
+            currentMino.setShape(rotated);
+            currentMino.moveUp();
+        }
+    }
 }
