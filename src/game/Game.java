@@ -45,7 +45,7 @@ public class Game {
 
 
     // getter
-    public Cell[][] getBoard() {
+    public Cell[][] getDisplayBoard() {
         Cell[][] tempBoard = board.getBoardCopy();
 
         if (currentMino == null) {
@@ -75,6 +75,26 @@ public class Game {
 
 
 
+    // moveCheck&move
+    public void moveLeft() {
+        if (board.canPlace(currentMino, currentMino.getRow(), currentMino.getCol() - 1)) {
+            currentMino.moveLeft();
+        }
+    }
 
-    
+    public void moveRight() {
+        if (board.canPlace(currentMino, currentMino.getRow(), currentMino.getCol() + 1)) {
+            currentMino.moveRight();
+        }
+    }
+
+    public void moveDown() {
+        if (board.canPlace(currentMino, currentMino.getRow() + 1, currentMino.getCol())) {
+            currentMino.moveDown();
+        }
+        else {
+            // 블럭 고정
+        }
+    }
+   
 }

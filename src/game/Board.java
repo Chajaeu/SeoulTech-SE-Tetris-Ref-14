@@ -23,12 +23,8 @@ public class Board {
 
 
     // board의 크기 조회 용 getter
-    public int getRows() {
-        return rows;
-    }
-    public int getCols() {
-        return cols;
-    }
+    public int getRows() {return rows;}
+    public int getCols() {return cols;}
 
     // 보드 각 칸(cell) 조회
     public Cell getCell(int row, int col) {

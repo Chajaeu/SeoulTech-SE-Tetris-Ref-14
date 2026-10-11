@@ -26,17 +26,9 @@ public final class Cell {
 
 
     // getter 3종
-    public char getMark() {
-        return mark;
-    }
-
-    public boolean isItem() {
-        return item;
-    }
-
-    public char getType() {
-        return type;
-    }
+    public char getMark() {return mark;}
+    public boolean isItem() {return item;}
+    public char getType() {return type;}
 
 
     // 빈칸 여부 확인
