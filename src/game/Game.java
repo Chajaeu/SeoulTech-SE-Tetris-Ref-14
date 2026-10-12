@@ -52,7 +52,7 @@ public class Game {
         createNewMino();
     }
 
-
+    // 사용 가능성이 있으므로 유
     public void startGame() {
         if (currentMino == null) {
             createNewMino();
@@ -74,7 +74,7 @@ public class Game {
         nextMino = new Mino(minoTypes[random.nextInt(minoTypes.length)]);
 
         if (!board.canPlace(currentMino, currentMino.getRow(), currentMino.getCol())) {
-            // 게임오버 판정
+            gameover();
         }
     }
 
@@ -320,4 +320,17 @@ public class Game {
     }
     
 
+
+
+    public void pause() {
+        isPaused = true;
+    }
+
+    public void resume() {
+        isPaused = false;
+    }
+
+    public void gameover() {
+        isGameover = true;
+    }
 }
