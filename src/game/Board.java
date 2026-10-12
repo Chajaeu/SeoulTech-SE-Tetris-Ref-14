@@ -88,4 +88,16 @@ public class Board {
         }
         return true;
     }
+
+
+    public void fixMino(Mino mino) {
+        for (int r = 0; r < mino.getHeight(); r++) {
+            for (int c = 0; c < mino.getWidth(); c++) {
+                Cell cell = mino.getCell(r, c);
+                if (!cell.isEmpty()) {
+                    board[mino.getRow() + r][mino.getCol() + c] = cell;
+                }
+            }
+        }
+    }
 }

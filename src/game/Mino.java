@@ -83,7 +83,7 @@ public class Mino {
 
 
 
-
+    // 직사각형(무게추) 블럭은 어차피 회전 X
     public Cell[][] createRotatedCW() {
         int size = getSize();
         Cell[][] rotated = new Cell[size][size];
