@@ -25,10 +25,15 @@ public class Game {
     private int tickInterval;
 
     private int score;
+    private int lines;
+    private int level;
 
     private boolean isPaused;
     private boolean isGameover;
     private boolean isWaitingDelete;
+
+    private boolean[][] deleteWaitingCells;
+    
 
 
     public Game() {
@@ -36,9 +41,12 @@ public class Game {
         random = new Random(); // seed 고정 가능
         tickInterval = INITIAL_TICK_INTERVAL;
         score = 0;
+        lines = 0;
+        level = 0;
         isPaused = false;
         isGameover = false;
         isWaitingDelete = false;
+        deleteWaitingCells = null;
 
         nextMino = new Mino(minoTypes[random.nextInt(minoTypes.length)]);
         createNewMino();
@@ -105,6 +113,40 @@ public class Game {
         return tickInterval;
     }
 
+    public int getScore() {
+        return score;
+    }
+    public int getLines() {
+        return lines;
+    }
+    public int getLevel() {
+        return level;
+    }
+
+    public boolean getIsPaused() {
+        return isPaused;
+    }
+    public boolean getIsGameover() {
+        return isGameover;
+    }
+    // UI에서는 getIsWaitingDelete()를 체크하다 true면 (애니처리중에는 확인X)
+    // getDeleteWaitingCells() 호출해서 애니메이션 처리 후 
+    // deleteCells() 호출
+    public boolean getIsWaitingDelete() {
+        return isWaitingDelete;
+    }
+    public boolean[][] getDeleteWaitingCells() {
+        if (deleteWaitingCells == null) return null;
+        boolean[][] temp = new boolean[ROWS][COLS];
+        for (int r = 0; r < ROWS; r++) {
+            for (int c = 0; c < COLS; c++) {
+                temp[r][c] = deleteWaitingCells[r][c];
+            }
+        }
+        return temp;
+    }
+
+
 
     // moveCheck&move
     public void moveLeft() {
@@ -160,10 +202,16 @@ public class Game {
 
     // 현재 블럭 고정
     private void placeMino() {
+
+
+        // 아이템 중 고정하면 안되는 종류시 if - s/c 에서 처리 후 return
+
+
         board.fixMino(currentMino);
         currentMino = null;
         
         // 삭제 필요 칸 탐색 함수
+        searchDeleteCells();
         // (-> 삭제 필요 칸 존재시 UI에 전달, isWaitingDelete = true;
         // -> UI에서 삭제 함수 실행, isWaitingDelete = false; )
     }
@@ -187,5 +235,89 @@ public class Game {
 
 
 
+    
+    private void searchDeleteCells() {
+        deleteWaitingCells = new boolean[ROWS][COLS];
+        for (int r = 0; r < ROWS; r++) {
+            for (int c = 0; c < COLS; c++) {
+                deleteWaitingCells[r][c] = false;
+            }
+        }
+
+        for (int r = 0; r < ROWS; r++) {
+            boolean fullLine = true;
+            for (int c = 0; c < COLS; c++) {
+                Cell cell = board.getCell(r, c);
+
+                if (cell.isEmpty()) {
+                    fullLine = false;
+                    continue;
+                }
+
+                if (cell.isItem()) {
+
+
+                    // switch-case로 작동시키기, bomb, lineClear 등 작동
+
+
+                    isWaitingDelete = true;
+                }
+            }
+
+            if (fullLine) {
+                isWaitingDelete = true;
+                for (int c = 0; c < COLS; c++) {
+                    deleteWaitingCells[r][c] = true;
+                }
+            }
+        }
+        
+    }
+    // UI에서 애니메이션 이후 호출
+    public void deleteCells() {
+        if (deleteWaitingCells == null || isWaitingDelete == false) return;
+
+        int tempDeleteLines = 0;
+        int tempRows = 0;
+
+        for (int r = ROWS - 1; r >= tempRows; r--) {
+            boolean fullLine = true;
+            for (int c = 0; c < COLS; c++) {
+                if (!deleteWaitingCells[r][c]) {
+                    fullLine = false;
+                    continue;
+                }
+
+                board.setCell(r, c, new Cell());
+                
+            }
+
+            if (fullLine) {
+                for (int i = r; i >= tempRows + 1; i--) {
+                    for (int c = 0; c < COLS; c++) {
+                        board.setCell(i, c, board.getCell(i-1, c));
+
+                        deleteWaitingCells[i][c] = deleteWaitingCells[i-1][c];
+
+                    }
+                }
+                for (int c = 0; c < COLS; c++) {
+                    board.setCell(tempRows, c, new Cell());
+                }
+
+                tempDeleteLines++;
+                tempRows++;
+                r++;
+            }
+        }
+
+        // 삭제 줄 수에 따른 점수 차이 처리
+        score += tempDeleteLines * 100; // 임시
+        lines += tempDeleteLines;
+
+        deleteWaitingCells = null;
+        isWaitingDelete = false;
+    }
+    
 
 }

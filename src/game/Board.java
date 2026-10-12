@@ -100,4 +100,9 @@ public class Board {
             }
         }
     }
+
+
+    public void setCell(int row, int col, Cell cell) {
+        board[row][col] = cell;
+    }
 }
