@@ -4,17 +4,23 @@ import java.util.Random;
 
 public class Game {
     // 상수
-    // 보드 크기 상수(20x10 고정)
+    // 보드 크기(20x10 고정)
     public static final int ROWS = 20;
     public static final int COLS = 10;
-
+    // 난이도
+    public static final int EASY = 0;
+    public static final int NORMAL = 1;
+    public static final int HARD = 2;
+    // 내부 상수
+    // tick 간격
     private static final int INITIAL_TICK_INTERVAL = 1000; //ms
     private static final int MIN_TICK_INTERVAL = 200;
+    //
 
 
     // 필드
     // Mino 블럭 타입(일반)
-    private final char[] minoTypes = {'I', 'L', 'J', 'T', 'S', 'Z', 'O'};
+    private final char[] minoTypes = {'L', 'J', 'T', 'S', 'Z', 'O', 'I'};
     private Random random;
 
     // 보드&블럭 관리
@@ -28,6 +34,9 @@ public class Game {
     private int lines;
     private int level;
 
+    private int difficulty;
+    private boolean itemMode;
+
     private boolean isPaused;
     private boolean isGameover;
     private boolean isWaitingDelete;
@@ -36,23 +45,25 @@ public class Game {
     
 
 
-    public Game() {
+    public Game(int difficulty, boolean itemMode) {
         board = new Board(ROWS, COLS);
         random = new Random(); // seed 고정 가능
         tickInterval = INITIAL_TICK_INTERVAL;
         score = 0;
         lines = 0;
         level = 0;
+        this.difficulty = difficulty;
+        this.itemMode = itemMode;
         isPaused = false;
         isGameover = false;
         isWaitingDelete = false;
         deleteWaitingCells = null;
 
-        nextMino = new Mino(minoTypes[random.nextInt(minoTypes.length)]);
+        nextMino = new Mino(selectMinoType());
         createNewMino();
     }
 
-    // 사용 가능성이 있으므로 유
+    // 사용 가능성이 있으므로 유지
     public void startGame() {
         if (currentMino == null) {
             createNewMino();
@@ -69,9 +80,18 @@ public class Game {
     }
 
 
+    private char selectMinoType() {
+        int bound = difficulty == EASY ? 72 : difficulty == HARD ? 68 : 70;
+        int index = random.nextInt(bound) / 10;
+
+        if (index < 6) {
+            return minoTypes[index];
+        }
+        return minoTypes[6];
+    }
     private void createNewMino() {
         currentMino = nextMino;
-        nextMino = new Mino(minoTypes[random.nextInt(minoTypes.length)]);
+        nextMino = new Mino(selectMinoType());
 
         if (!board.canPlace(currentMino, currentMino.getRow(), currentMino.getCol())) {
             gameover();
@@ -121,6 +141,13 @@ public class Game {
     }
     public int getLevel() {
         return level;
+    }
+
+    public int getDifficulty() {
+        return difficulty;
+    }
+    public boolean getItemMode() {
+        return itemMode;
     }
 
     public boolean getIsPaused() {
