@@ -8,9 +8,9 @@ public class Game {
     public static final int ROWS = 20;
     public static final int COLS = 10;
     // 난이도
-    public static final int EASY = 0;
-    public static final int NORMAL = 1;
-    public static final int HARD = 2;
+    public static final int EASY = 1;
+    public static final int NORMAL = 2;
+    public static final int HARD = 3;
     // 내부 상수
     // tick 간격
     private static final int INITIAL_TICK_INTERVAL = 1100; //ms
@@ -197,7 +197,7 @@ public class Game {
 
         if (board.canPlace(currentMino, currentMino.getRow() + 1, currentMino.getCol())) {
             currentMino.moveDown();
-            score++;
+            dropScore();
         }
         else {  // 아래로 가야하는데 못가면 고정
             placeMino();
@@ -210,7 +210,7 @@ public class Game {
 
         while(board.canPlace(currentMino, currentMino.getRow() + 1, currentMino.getCol())){
             currentMino.moveDown();
-            score++;
+            dropScore();
         }
         placeMino();
     }
@@ -338,8 +338,7 @@ public class Game {
         }
 
         // 삭제 줄 수에 따른 처리
-        score += tempDeleteLines * 100; // 임시
-
+        lineScore(tempDeleteLines);
         lines += tempDeleteLines;
         updateLevel();
         updateTickInterval();
@@ -367,6 +366,18 @@ public class Game {
         tickInterval = Math.max(INITIAL_TICK_INTERVAL - decr * level, MIN_TICK_INTERVAL);
     }
 
+
+
+    private void dropScore() {
+        score += level * difficulty;
+    }
+    private void lineScore(int lines) {
+        if (lines <= 0) return; // 줄수 0 혹은 음수(잘못된값)
+        else if (lines == 1) score += 100;
+        else if (lines == 2) score += 300;
+        else if (lines == 3) score += 600;
+        else score += 1000;     // 줄수 4 이상
+    }
 
 
     public void pause() {
