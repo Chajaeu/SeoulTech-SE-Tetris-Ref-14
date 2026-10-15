@@ -13,7 +13,7 @@ public class Game {
     public static final int HARD = 2;
     // 내부 상수
     // tick 간격
-    private static final int INITIAL_TICK_INTERVAL = 1000; //ms
+    private static final int INITIAL_TICK_INTERVAL = 1100; //ms
     private static final int MIN_TICK_INTERVAL = 200;
 
 
@@ -47,12 +47,12 @@ public class Game {
     public Game(int difficulty, boolean itemMode) {
         board = new Board(ROWS, COLS);
         random = new Random(); // seed 고정 가능
-        tickInterval = INITIAL_TICK_INTERVAL;
         score = 0;
         lines = 0;
-        level = 1;
         this.difficulty = difficulty;
         this.itemMode = itemMode;
+        updateLevel();
+        updateTickInterval();
         isPaused = false;
         isGameover = false;
         isWaitingDelete = false;
@@ -342,6 +342,7 @@ public class Game {
 
         lines += tempDeleteLines;
         updateLevel();
+        updateTickInterval();
 
         deleteWaitingCells = null;
         isWaitingDelete = false;
@@ -359,6 +360,13 @@ public class Game {
 
         level = i;
     }
+
+    private void updateTickInterval() {
+        int decr = difficulty == EASY ? 80 : difficulty == HARD ? 120 : 100;
+
+        tickInterval = Math.max(INITIAL_TICK_INTERVAL - decr * level, MIN_TICK_INTERVAL);
+    }
+
 
 
     public void pause() {
