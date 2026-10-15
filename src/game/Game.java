@@ -15,7 +15,6 @@ public class Game {
     // tick 간격
     private static final int INITIAL_TICK_INTERVAL = 1000; //ms
     private static final int MIN_TICK_INTERVAL = 200;
-    //
 
 
     // 필드
@@ -51,7 +50,7 @@ public class Game {
         tickInterval = INITIAL_TICK_INTERVAL;
         score = 0;
         lines = 0;
-        level = 0;
+        level = 1;
         this.difficulty = difficulty;
         this.itemMode = itemMode;
         isPaused = false;
@@ -338,15 +337,28 @@ public class Game {
             }
         }
 
-        // 삭제 줄 수에 따른 점수 차이 처리
+        // 삭제 줄 수에 따른 처리
         score += tempDeleteLines * 100; // 임시
+
         lines += tempDeleteLines;
+        updateLevel();
 
         deleteWaitingCells = null;
         isWaitingDelete = false;
     }
     
 
+    // 삭제된 줄 수에 따른 레벨 기준(5 15 30 50 ...)
+    private void updateLevel() {
+        int t = 0;
+        int i = 0;
+        do {
+            t += (i+1) * 5;
+            i++;
+        } while(t <= lines);
+
+        level = i;
+    }
 
 
     public void pause() {
