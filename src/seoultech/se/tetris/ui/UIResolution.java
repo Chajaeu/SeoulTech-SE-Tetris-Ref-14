@@ -5,7 +5,7 @@ public class UIResolution {
     public enum Size {
         SMALL(960, 540),
         MEDIUM(1024, 576),
-        DEFAULT(1280, 720);
+        LARGE(1280, 720);
 
         private final int width;
         private final int height;

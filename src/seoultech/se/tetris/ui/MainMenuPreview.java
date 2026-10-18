@@ -7,7 +7,7 @@ public class MainMenuPreview extends Application {
 
     @Override
     public void start(Stage stage) throws Exception {
-        PlayUI.show(stage, UIResolution.Size.DEFAULT);
+        MainMenuUI.show(stage, UIResolution.Size.LARGE);
     }
 
     public static void main(String[] args) {

@@ -25,6 +25,7 @@ public class PlayUI {
         double designWidth = designRoot.getPrefWidth();
         double designHeight = designRoot.getPrefHeight();
 
+        // 실제 해상도에 맞게 전체 UI 크기 조절
         double scaleX = boardWidth / designWidth;
         double scaleY = boardHeight / designHeight;
 
