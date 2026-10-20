@@ -39,7 +39,8 @@ public class Mino {
                 break;
 
             case COLUMN_CLEAR:
-
+                defaultMino();
+                setItemCell();
                 break;
 
             case WEIGHT:

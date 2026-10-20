@@ -119,6 +119,10 @@ public class Game {
     private void createItemMino() {
         char itemType = itemTypes[random.nextInt(itemTypes.length)];
         nextMino = new Mino(selectMinoType(), itemType);
+
+        if (itemType == Mino.COLUMN_CLEAR) {
+            subMino = new Mino('I');
+        }
     }
 
 
@@ -310,6 +314,12 @@ public class Game {
                         case Mino.LINE_CLEAR:
                             for (int i = 0; i < COLS; i++) {
                                 deleteWaitingCells[r][i] = true;
+                            }
+                            break;
+                            
+                        case Mino.COLUMN_CLEAR:
+                            for (int i = 0; i < ROWS; i++) {
+                                deleteWaitingCells[i][c] = true;
                             }
                             break;
                     
