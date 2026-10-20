@@ -52,7 +52,10 @@ public class Mino {
                 break;
 
             case REPLICATION:
-
+                shape = new Cell[1][1];
+                shape[0][0] = new Cell(itemType, true, itemType);
+                row = 0;
+                col = 4;
                 break;
 
             default:
@@ -135,6 +138,7 @@ public class Mino {
     // getter
     // 블럭 종류
     public char getType() {return type;}
+    public char getItemType() {return itemType;}
     // 현위치
     public int getRow() {return row;}
     public int getCol() {return col;}

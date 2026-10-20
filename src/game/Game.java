@@ -256,7 +256,21 @@ public class Game {
 
     // 현재 블럭 고정
     private void placeMino() {
+        if (currentMino.getItemType() == Mino.REPLICATION) {
+            subMino = nextMino;
+            nextMino = null;
 
+            if (currentMino.getRow() >= ROWS-1) {
+                nextMino = new Mino(subMino.getType());
+            }
+            else {
+                Cell bottom = board.getCell(currentMino.getRow()+1, currentMino.getCol());
+                nextMino = new Mino(bottom.getType());
+            }
+
+            currentMino = null;
+            return;
+        }
 
         // 아이템 중 고정하면 안되는 종류(weight, replica)시 if - s/c 에서 처리 후 return
 
