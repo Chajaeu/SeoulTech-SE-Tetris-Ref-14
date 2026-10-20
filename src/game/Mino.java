@@ -19,6 +19,8 @@ public class Mino {
 
     private Cell[][] shape;
 
+    private boolean contacted;  // 무게추 아이템 용, 범용성 有
+
     // 블럭 생성
     public Mino(char type) {
         this(type, NO_ITEM);
@@ -27,6 +29,7 @@ public class Mino {
     public Mino(char type, char itemType) {
         this.type = type;
         this.itemType = itemType;
+        contacted = false;
         
         switch (itemType) {
             case NO_ITEM:
@@ -44,11 +47,23 @@ public class Mino {
                 break;
 
             case WEIGHT:
-
+                shape = new Cell[2][4];
+                for (int i=0; i<4; i++){
+                    shape[0][i] = new Cell(itemType, true, itemType);
+                    shape[1][i] = new Cell(itemType, true, itemType);
+                }
+                row = 0;
+                col = 3;
                 break;
 
             case BOMB:
-
+                shape = new Cell[2][2];
+                shape[0][0] = new Cell(itemType, true, itemType);
+                shape[0][1] = new Cell(itemType, true, itemType);
+                shape[1][1] = new Cell(itemType, true, itemType);
+                shape[1][0] = new Cell(itemType, true, itemType);
+                row = 0;
+                col = 4;
                 break;
 
             case REPLICATION:
@@ -148,7 +163,8 @@ public class Mino {
     public int getWidth() {return shape[0].length;}
     // 특정 칸 cell 정보
     public Cell getCell(int row, int col) { return shape[row][col]; }
-    
+    // 무게추용 접촉여부
+    public boolean getContacted() {return contacted;}
 
     // 블럭 위치 변경
     public void moveLeft() {col--;}
@@ -171,6 +187,10 @@ public class Mino {
 
     public void setShape(Cell[][] shape) {
         this.shape = shape;
+    }
+
+    public void setContacted() {
+        contacted = true;
     }
 }
 

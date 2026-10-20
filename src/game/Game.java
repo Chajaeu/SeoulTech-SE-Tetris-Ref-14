@@ -1,5 +1,6 @@
 package game;
 
+import java.math.RoundingMode;
 import java.util.Random;
 
 public class Game {
@@ -204,7 +205,7 @@ public class Game {
 
     // moveCheck&move
     public void moveLeft() {
-        if (!checkCanOperate() || currentMino == null) return;
+        if (!checkCanOperate() || currentMino == null || currentMino.getContacted()) return;
 
         if (board.canPlace(currentMino, currentMino.getRow(), currentMino.getCol() - 1)) {
             currentMino.moveLeft();
@@ -212,7 +213,7 @@ public class Game {
     }
 
     public void moveRight() {
-        if (!checkCanOperate() || currentMino == null) return;
+        if (!checkCanOperate() || currentMino == null || currentMino.getContacted()) return;
 
         if (board.canPlace(currentMino, currentMino.getRow(), currentMino.getCol() + 1)) {
             currentMino.moveRight();
@@ -228,6 +229,7 @@ public class Game {
             dropScore();
         }
         else {  // 아래로 가야하는데 못가면 고정
+            currentMino.setContacted();
             placeMino();
         }
     }
@@ -240,7 +242,11 @@ public class Game {
             currentMino.moveDown();
             dropScore();
         }
-        placeMino();
+        currentMino.setContacted();
+        // 무게추일 시 계속 반복해서 바닥까지 가야함
+        while(currentMino != null) {
+            placeMino();
+        }
     }
 
     // 자동낙하(낙하 틱 당 행동이 추가될 경우를 대비)
@@ -256,6 +262,7 @@ public class Game {
 
     // 현재 블럭 고정
     private void placeMino() {
+        // 고정하면 안되는 아이템 처리
         if (currentMino.getItemType() == Mino.REPLICATION) {
             subMino = nextMino;
             nextMino = null;
@@ -271,8 +278,20 @@ public class Game {
             currentMino = null;
             return;
         }
-
-        // 아이템 중 고정하면 안되는 종류(weight, replica)시 if - s/c 에서 처리 후 return
+        if (currentMino.getItemType() == Mino.WEIGHT) {
+            // 바로 아래 4칸 빈칸으로 초기화 후 아래로 이동
+            if (currentMino.getRow() < ROWS-2) {
+                for (int i=0; i<4; i++) {
+                    board.setCell(currentMino.getRow()+2, currentMino.getCol()+i, new Cell());
+                }
+                currentMino.moveDown();
+            }
+            // 바닥에서는 무게추 블럭 제거
+            else {
+                currentMino = null;
+            }
+            return;
+        }
 
 
         board.fixMino(currentMino);
@@ -287,7 +306,7 @@ public class Game {
 
     // rotateCheck&rotate
     public void rotateCW() {
-        if (!checkCanOperate() || currentMino == null) return;
+        if (!checkCanOperate() || currentMino == null || currentMino.getItemType() == Mino.WEIGHT) return;
 
         Cell[][] rotated = currentMino.createRotatedCW();
         int row = currentMino.getRow();
@@ -300,8 +319,6 @@ public class Game {
             currentMino.moveUp();
         }
     }
-
-
 
     
     private void searchDeleteCells() {
@@ -323,7 +340,7 @@ public class Game {
                 }
 
                 if (cell.isItem()) {
-                    // switch-case로 작동시키기, bomb, lineClear 등 작동
+                    // switch-case로 작동시키기, bomb, lineClear, columnClear 작동
                     switch (cell.getType()) {
                         case Mino.LINE_CLEAR:
                             for (int i = 0; i < COLS; i++) {
@@ -336,7 +353,18 @@ public class Game {
                                 deleteWaitingCells[i][c] = true;
                             }
                             break;
-                    
+                        
+                        case Mino.BOMB:
+                            for (int i=0; i<3; i++) {
+                                for (int j=0; j<3; j++) {
+                                    if (r-1+i < 0 || r-1+i >= ROWS || c-1+j < 0 || c-1+j >= COLS) {
+                                        continue;
+                                    }
+                                    deleteWaitingCells[r-1+i][c-1+j] = true;
+                                }
+                            }
+                            break;
+                        
                         default:
                             break;
                     }
