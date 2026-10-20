@@ -1,5 +1,7 @@
 package game;
 
+import java.util.Random;
+
 public class Mino {
     // 아이템 타입 상수
     public static final char NO_ITEM = ' ';
@@ -22,7 +24,6 @@ public class Mino {
         this(type, NO_ITEM);
     }
 
-
     public Mino(char type, char itemType) {
         this.type = type;
         this.itemType = itemType;
@@ -33,7 +34,8 @@ public class Mino {
                 break;
 
             case LINE_CLEAR:
-                
+                defaultMino();
+                setItemCell();
                 break;
 
             case COLUMN_CLEAR:
@@ -56,7 +58,6 @@ public class Mino {
                 break;
         }
     }
-
 
     private void defaultMino() {
         // 타입에 따른 배열크기 결정(회전 고려 정사각형)
@@ -98,7 +99,7 @@ public class Mino {
     }
 
     // arg로 받은 높이&너비(행렬) 크기로 배열 생성, 빈 cell로 초기화(2*4 사이즈 무게추 고려)
-    private static Cell[][] emptyShape(int height, int width) {
+    private Cell[][] emptyShape(int height, int width) {
         Cell[][] result = new Cell[height][width];
         for (int r = 0; r < height; r++) {
             for (int c = 0; c < width; c++) {
@@ -106,6 +107,27 @@ public class Mino {
             }
         }
         return result;
+    }
+
+    private void setItemCell() {
+        Random random = new Random();
+        int selectNum = random.nextInt(4);
+        int i = 0;
+        for (int r = 0; r < getSize(); r++) {
+            for (int c = 0; c < getSize(); c++) {
+                if (shape[r][c].isEmpty()) { 
+                    continue;
+                }
+                
+                if (i == selectNum) {
+                    shape[r][c] = new Cell(itemType, true, itemType);
+                    return;
+                }
+
+                i++;
+            }
+        }
+
     }
 
 
@@ -128,7 +150,6 @@ public class Mino {
     public void moveRight() {col++;}
     public void moveDown() {row++;}
     public void moveUp() {row--;}     // 회전 시 사용 가능
-
 
 
     // 직사각형(무게추) 블럭은 어차피 회전 X

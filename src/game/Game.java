@@ -102,7 +102,7 @@ public class Game {
             subMino = null;
         }
         else {
-            if (lines / 10 > givenItemNumber) {
+            if (itemMode && (lines / 10 > givenItemNumber)) {
                 createItemMino();
                 givenItemNumber++;
             }
@@ -254,7 +254,7 @@ public class Game {
     private void placeMino() {
 
 
-        // 아이템 중 고정하면 안되는 종류시 if - s/c 에서 처리 후 return
+        // 아이템 중 고정하면 안되는 종류(weight, replica)시 if - s/c 에서 처리 후 return
 
 
         board.fixMino(currentMino);
@@ -305,10 +305,17 @@ public class Game {
                 }
 
                 if (cell.isItem()) {
-
-
                     // switch-case로 작동시키기, bomb, lineClear 등 작동
-
+                    switch (cell.getType()) {
+                        case Mino.LINE_CLEAR:
+                            for (int i = 0; i < COLS; i++) {
+                                deleteWaitingCells[r][i] = true;
+                            }
+                            break;
+                    
+                        default:
+                            break;
+                    }
 
                     isWaitingDelete = true;
                 }
