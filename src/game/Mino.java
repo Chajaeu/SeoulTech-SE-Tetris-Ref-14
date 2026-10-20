@@ -1,7 +1,16 @@
 package game;
 
 public class Mino {
+    // 아이템 타입 상수
+    public static final char NO_ITEM = ' ';
+    public static final char LINE_CLEAR = 'L';
+    public static final char WEIGHT = 'W';
+    public static final char COLUMN_CLEAR = 'C';
+    public static final char BOMB = 'B';
+    public static final char REPLICATION = 'R';
+
     private final char type;
+    private final char itemType;
 
     private int row;
     private int col;
@@ -10,38 +19,77 @@ public class Mino {
 
     // 블럭 생성
     public Mino(char type) {
+        this(type, NO_ITEM);
+    }
+
+
+    public Mino(char type, char itemType) {
         this.type = type;
-        // 타입에 따른 배열크기 결정(회전 고려 정사각형)
-        int size = type == 'O' ? 2 : type == 'I' ? 4 : 3;
-        shape = emptyShape(size, size);
-        switch (type) {
-            case 'I':
-                fill(1, 0); fill(1, 1); fill(1, 2); fill(1, 3);
+        this.itemType = itemType;
+        
+        switch (itemType) {
+            case NO_ITEM:
+                defaultMino();
                 break;
-            case 'L':
-                fill(0, 2); fill(1, 0); fill(1, 1); fill(1, 2);
+
+            case LINE_CLEAR:
+                
                 break;
-            case 'J':
-                fill(0, 0); fill(1, 0); fill(1, 1); fill(1, 2);
+
+            case COLUMN_CLEAR:
+
                 break;
-            case 'T':
-                fill(0, 1); fill(1, 0); fill(1, 1); fill(1, 2);
+
+            case WEIGHT:
+
                 break;
-            case 'S':
-                fill(0, 1); fill(0, 2); fill(1, 0); fill(1, 1);
+
+            case BOMB:
+
                 break;
-            case 'Z':
-                fill(0, 0); fill(0, 1); fill(1, 1); fill(1, 2);
+
+            case REPLICATION:
+
                 break;
-            case 'O':
-                fill(0, 0); fill(0, 1); fill(1, 0); fill(1, 1);
-                break;
+
             default:
-                throw new IllegalArgumentException("잘못된 블럭 타입 : " + type);
+                break;
         }
-        // 가능한 한 중앙에 맞게 최초 위치 설정
-        row = 0;
-        col = type == 'O' ? 4 : 3;
+    }
+
+
+    private void defaultMino() {
+        // 타입에 따른 배열크기 결정(회전 고려 정사각형)
+            int size = type == 'O' ? 2 : type == 'I' ? 4 : 3;
+            shape = emptyShape(size, size);
+            switch (type) {
+                case 'I':
+                    fill(1, 0); fill(1, 1); fill(1, 2); fill(1, 3);
+                    break;
+                case 'L':
+                    fill(0, 2); fill(1, 0); fill(1, 1); fill(1, 2);
+                    break;
+                case 'J':
+                    fill(0, 0); fill(1, 0); fill(1, 1); fill(1, 2);
+                    break;
+                case 'T':
+                    fill(0, 1); fill(1, 0); fill(1, 1); fill(1, 2);
+                    break;
+                case 'S':
+                    fill(0, 1); fill(0, 2); fill(1, 0); fill(1, 1);
+                    break;
+                case 'Z':
+                    fill(0, 0); fill(0, 1); fill(1, 1); fill(1, 2);
+                    break;
+                case 'O':
+                    fill(0, 0); fill(0, 1); fill(1, 0); fill(1, 1);
+                    break;
+                default:
+                    throw new IllegalArgumentException("잘못된 블럭 타입 : " + type);
+            }
+            // 가능한 한 중앙에 맞게 최초 위치 설정
+            row = 0;
+            col = type == 'O' ? 4 : 3;
     }
 
     // 일반 블럭 생성 시, 지정 위치에 실제 칸 채우는 함수

@@ -14,7 +14,7 @@ public final class Cell {
 
     // 일반 블럭 생성
     public Cell(char type) {
-    this('O', false, type);
+        this('O', false, type);
     }
 
     // 아이템 여부 포함

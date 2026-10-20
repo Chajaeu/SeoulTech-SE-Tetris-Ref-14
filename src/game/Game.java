@@ -20,18 +20,22 @@ public class Game {
     // 필드
     // Mino 블럭 타입(일반)
     private final char[] minoTypes = {'L', 'J', 'T', 'S', 'Z', 'O', 'I'};
+    private final char[] itemTypes = {Mino.LINE_CLEAR, Mino.WEIGHT, Mino.COLUMN_CLEAR, Mino.BOMB, Mino.REPLICATION};
     private Random random;
 
     // 보드&블럭 관리
     private final Board board;
     private Mino nextMino;
     private Mino currentMino;
+    private Mino subMino;
 
     private int tickInterval;
 
     private int score;
     private int lines;
     private int level;
+
+    private int givenItemNumber;
 
     private int difficulty;
     private boolean itemMode;
@@ -49,6 +53,7 @@ public class Game {
         random = new Random(); // seed 고정 가능
         score = 0;
         lines = 0;
+        givenItemNumber = 0;
         this.difficulty = difficulty;
         this.itemMode = itemMode;
         updateLevel();
@@ -58,16 +63,17 @@ public class Game {
         isWaitingDelete = false;
         deleteWaitingCells = null;
 
+        subMino = null;
         nextMino = new Mino(selectMinoType());
         createNewMino();
     }
 
-    // 사용 가능성이 있으므로 유지
-    public void startGame() {
-        if (currentMino == null) {
-            createNewMino();
-        }
-    }
+    // // 사용 가능성이 있으므로 유지
+    // public void startGame() {
+    //     if (currentMino == null) {
+    //         createNewMino();
+    //     }
+    // }
     
     // if (!checkCanOperate()) return;
     //  if (!checkCanOperate() || currentMino == null) return;
@@ -90,11 +96,29 @@ public class Game {
     }
     private void createNewMino() {
         currentMino = nextMino;
-        nextMino = new Mino(selectMinoType());
+        
+        if (subMino != null) {
+            nextMino = subMino;
+            subMino = null;
+        }
+        else {
+            if (lines / 10 > givenItemNumber) {
+                createItemMino();
+                givenItemNumber++;
+            }
+            else {
+                nextMino = new Mino(selectMinoType());
+            }
+
+        }
 
         if (!board.canPlace(currentMino, currentMino.getRow(), currentMino.getCol())) {
             gameover();
         }
+    }
+    private void createItemMino() {
+        char itemType = itemTypes[random.nextInt(itemTypes.length)];
+        nextMino = new Mino(selectMinoType(), itemType);
     }
 
 
