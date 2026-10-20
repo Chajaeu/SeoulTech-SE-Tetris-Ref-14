@@ -13,7 +13,7 @@ public class Game {
     public static final int HARD = 3;
     // 내부 상수
     // tick 간격
-    private static final int INITIAL_TICK_INTERVAL = 1100; //ms
+    private static final int INITIAL_TICK_INTERVAL = 1000; //ms
     private static final int MIN_TICK_INTERVAL = 200;
 
 
@@ -204,7 +204,7 @@ public class Game {
 
     // moveCheck&move
     public void moveLeft() {
-        if (!checkCanOperate() || currentMino == null || currentMino.getContacted()) return;
+        if (!checkCanOperate() || currentMino == null || checkWeightContact()) return;
 
         if (board.canPlace(currentMino, currentMino.getRow(), currentMino.getCol() - 1)) {
             currentMino.moveLeft();
@@ -212,12 +212,25 @@ public class Game {
     }
 
     public void moveRight() {
-        if (!checkCanOperate() || currentMino == null || currentMino.getContacted()) return;
+        if (!checkCanOperate() || currentMino == null || checkWeightContact()) return;
 
         if (board.canPlace(currentMino, currentMino.getRow(), currentMino.getCol() + 1)) {
             currentMino.moveRight();
         }
     }
+
+    private boolean checkWeightContact() {
+    if (currentMino.getItemType() != Mino.WEIGHT) return false;
+
+    if (!board.canPlace(
+            currentMino,
+            currentMino.getRow() + 1,
+            currentMino.getCol())) {
+        currentMino.setContacted();
+    }
+
+    return currentMino.getContacted();
+}
 
     // softdrop(수동낙하)
     public void moveDown() {    
@@ -446,7 +459,7 @@ public class Game {
     private void updateTickInterval() {
         int decr = difficulty == EASY ? 80 : difficulty == HARD ? 120 : 100;
 
-        tickInterval = Math.max(INITIAL_TICK_INTERVAL - decr * level, MIN_TICK_INTERVAL);
+        tickInterval = Math.max(INITIAL_TICK_INTERVAL - decr * (level-1), MIN_TICK_INTERVAL);
     }
 
 
