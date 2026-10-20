@@ -1,6 +1,5 @@
 package game;
 
-import java.math.RoundingMode;
 import java.util.Random;
 
 public class Game {
@@ -285,6 +284,7 @@ public class Game {
                     board.setCell(currentMino.getRow()+2, currentMino.getCol()+i, new Cell());
                 }
                 currentMino.moveDown();
+                dropScore();
             }
             // 바닥에서는 무게추 블럭 제거
             else {
