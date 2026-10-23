@@ -4,7 +4,6 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
-import javafx.scene.control.ButtonBase;
 import javafx.scene.control.ToggleButton;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.layout.Pane;
@@ -118,7 +117,7 @@ public class MainMenuUI {
         // 버튼 눌림 효과
         designRoot.lookupAll(".button").forEach(node -> {
             if (node instanceof Button button) {
-                addPressEffect(button);
+                ButtonEffects.addPressEffect(button);
             }
         });
 
@@ -198,7 +197,7 @@ public class MainMenuUI {
                     : normalStyle);
             });
 
-            addPressEffect(button);
+            ButtonEffects.addPressEffect(button);
         }
 
         // 선택된 버튼을 다시 눌러도 난이도 선택이 사라지지 않도록 한다.
@@ -209,21 +208,5 @@ public class MainMenuUI {
                 }
             }
         );
-    }
-
-
-    private static void addPressEffect(ButtonBase button) {
-
-        button.setOnMousePressed(e -> {
-            button.setTranslateY(3);
-            button.setScaleX(0.98);
-            button.setScaleY(0.98);
-        });
-
-        button.setOnMouseReleased(e -> {
-            button.setTranslateY(0);
-            button.setScaleX(1.0);
-            button.setScaleY(1.0);
-        });
     }
 }
