@@ -1,4 +1,4 @@
-package game;
+package seoultech.se.tetris.game;
 
 public class Board {
     // 보드 전체 칸 배열

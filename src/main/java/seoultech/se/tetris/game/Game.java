@@ -1,4 +1,4 @@
-package game;
+package seoultech.se.tetris.game;
 
 import java.util.Random;
 

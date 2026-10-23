@@ -1,4 +1,4 @@
-package game;
+package seoultech.se.tetris.game;
 
 public final class Cell {
     // 표시 모양 / 아이템 여부 / 종류
