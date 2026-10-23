@@ -41,11 +41,11 @@
             </VBox>
          </children>
       </VBox>
-      <VBox alignment="TOP_CENTER" layoutX="130.0" layoutY="46.0" prefHeight="161.0" prefWidth="242.0" style="-fx-background-color: rgba(15, 25, 40, 0.9); -fx-border-color: rgba(255,255,255,0.8); -fx-border-radius: 8px; -fx-background-radius: 10px; -fx-border-width: 5px; -fx-padding: 10px;">
+      <!--<VBox alignment="TOP_CENTER" layoutX="130.0" layoutY="46.0" prefHeight="161.0" prefWidth="242.0" style="-fx-background-color: rgba(15, 25, 40, 0.9); -fx-border-color: rgba(255,255,255,0.8); -fx-border-radius: 8px; -fx-background-radius: 10px; -fx-border-width: 5px; -fx-padding: 10px;">
          <children>
             <Label alignment="CENTER" prefHeight="27.0" prefWidth="275.0" style="-fx-font-family: &quot;Arial Black&quot;; -fx-font-size: 18px; -fx-text-fill: white;" text="HOLD" textAlignment="CENTER" />
             <Pane fx:id = "hold_pane" prefHeight="144.0" prefWidth="241.0" style="-fx-background-color: -fx-padding; -fx-background-radius: 5px;" />
          </children>
-      </VBox>
+      </VBox>-->
    </children>
 </AnchorPane>

@@ -76,7 +76,6 @@ public class Setting {
                 "resetButton"
             );
 
-
         // 해상도 선택
 
         ToggleGroup resolutionGroup = new ToggleGroup();
@@ -100,7 +99,6 @@ public class Setting {
                 largeResolutionButton.setSelected(true);
                 break;
         }
-
 
         // 색약 모드 ON / OFF
 
@@ -131,7 +129,11 @@ public class Setting {
 
         // 키 설정
         keySettingButton.setOnAction(e -> {
-            System.out.println("키 설정");
+            try {
+                openKeySettings((Pane) root);
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
         });
 
 
@@ -148,12 +150,12 @@ public class Setting {
                 getSelectedResolution(
                     smallResolutionButton,
                     mediumResolutionButton,
-                    largeResolutionButton
+                    largeResolutionButton,
+                    currentResolution
                 );
 
             boolean colorblindMode =
                 colorblindOnButton.isSelected();
-
 
             System.out.println(
                 "선택된 해상도: " + selectedResolution
@@ -162,7 +164,6 @@ public class Setting {
             System.out.println(
                 "색약 모드: " + colorblindMode
             );
-
 
             // 추후 Infra 연결 필요
 
@@ -190,23 +191,43 @@ public class Setting {
         }
     }
 
+    private static void openKeySettings(Pane settingsPane) throws Exception {
+        if (settingsPane.lookup("#keySettingPopup") != null) {
+            return;
+        }
+
+        Pane keySettings = (Pane) KeySetting.create();
+        keySettings.setId("keySettingPopup");
+        keySettings.setLayoutX(
+            (settingsPane.getPrefWidth() - keySettings.getPrefWidth()) / 2
+        );
+        keySettings.setLayoutY(
+            (settingsPane.getPrefHeight() - keySettings.getPrefHeight()) / 2
+        );
+        settingsPane.getChildren().add(keySettings);
+        keySettings.requestFocus();
+    }
+
 
     // 선택된 해상도 반환(bd로 반환 연결 필요)
     private static UIResolution.Size getSelectedResolution(
-            ToggleButton smallButton,
-            ToggleButton mediumButton,
-            ToggleButton largeButton) {
+        ToggleButton smallResolutionButton,
+        ToggleButton mediumResolutionButton,
+        ToggleButton largeResolutionButton,
+        UIResolution.Size currentResolution) {
 
-        if (smallButton.isSelected()) {
-            return UIResolution.Size.SMALL;
-        }
-
-        if (mediumButton.isSelected()) {
-            return UIResolution.Size.MEDIUM;
-        }
-
+    if (smallResolutionButton.isSelected()) {
+        return UIResolution.Size.SMALL;
+    }
+    if (mediumResolutionButton.isSelected()) {
+        return UIResolution.Size.MEDIUM;
+    }
+    if (largeResolutionButton.isSelected()) {
         return UIResolution.Size.LARGE;
     }
+
+    return currentResolution;
+}
 
 
     // 선택된 ToggleButton 표시
