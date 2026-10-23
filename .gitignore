@@ -1,0 +1,8 @@
+.vscode/contriviewer/
+
+.DS_Store
+
+*.class
+out/
+build/
+.gradle/
