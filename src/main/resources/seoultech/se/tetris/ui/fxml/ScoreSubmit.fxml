@@ -15,7 +15,7 @@
     이 FXML에는 컨트롤러나 API 호출을 연결하지 않는다.
 -->
 
-<AnchorPane fx:id="scoreSubmitRoot" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="340.0" prefWidth="440.0" style="-fx-background-color: linear-gradient(to bottom, #F7FBFF 0%, #DCEAF5 55%, #B8CBDD 100%); -fx-border-color: #173765; -fx-border-width: 6; -fx-border-radius: 12; -fx-background-radius: 15; -fx-font-family: 'Segoe UI';" xmlns="http://javafx.com/javafx/26" xmlns:fx="http://javafx.com/fxml/1">
+<AnchorPane fx:id="scoreSubmitRoot" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="340.0" prefWidth="440.0" style="-fx-background-color: linear-gradient(to bottom, #F7FBFF 0%, #DCEAF5 55%, #B8CBDD 100%); -fx-border-color: #173765; -fx-border-width: 6; -fx-border-radius: 12; -fx-background-radius: 15; -fx-font-family: 'Segoe UI';" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1">
     <children>
         <!-- API 연동 필요: 해당 모드/난이도의 예상 순위를 조회하여 rankLabel에 "RANK 3"처럼 표시한다. 조회 전에는 임의의 순위를 표시하지 않는다. -->
         <HBox alignment="CENTER_LEFT" layoutX="32.0" layoutY="42.0" prefHeight="36.0" prefWidth="376.0" spacing="12.0">

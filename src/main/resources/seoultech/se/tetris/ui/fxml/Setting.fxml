@@ -51,8 +51,8 @@
       </VBox>
       <HBox alignment="CENTER" layoutX="200.0" layoutY="421.0" prefHeight="72.0" prefWidth="200.0" spacing="31.0">
          <children>
-            <ToggleButton fx:id="saveButton" mnemonicParsing="false" prefHeight="25.0" prefWidth="124.0" style="-fx-background-color: linear-gradient(to bottom, #F7FBFF 0%, #DCEAF5 55%, #B8CBDD 100%); -fx-text-fill: #10204A; -fx-border-color: #173765; -fx-background-radius: 5; -fx-border-radius: 5; -fx-border-width: 2;" text="Save" />
-            <ToggleButton fx:id="resetButton" mnemonicParsing="false" prefHeight="25.0" prefWidth="124.0" style="-fx-background-color: linear-gradient(to bottom, #F7FBFF 0%, #DCEAF5 55%, #B8CBDD 100%); -fx-text-fill: #10204A; -fx-border-color: #173765; -fx-background-radius: 5; -fx-border-radius: 5; -fx-border-width: 2;" text="Reset" />
+            <Button fx:id="saveButton" mnemonicParsing="false" prefHeight="25.0" prefWidth="124.0" style="-fx-background-color: linear-gradient(to bottom, #F7FBFF 0%, #DCEAF5 55%, #B8CBDD 100%); -fx-text-fill: #10204A; -fx-border-color: #173765; -fx-background-radius: 5; -fx-border-radius: 5; -fx-border-width: 2;" text="Save" />
+            <Button fx:id="resetButton" mnemonicParsing="false" prefHeight="25.0" prefWidth="124.0" style="-fx-background-color: linear-gradient(to bottom, #F7FBFF 0%, #DCEAF5 55%, #B8CBDD 100%); -fx-text-fill: #10204A; -fx-border-color: #173765; -fx-background-radius: 5; -fx-border-radius: 5; -fx-border-width: 2;" text="Reset" />
          </children>
       </HBox>
    </children>

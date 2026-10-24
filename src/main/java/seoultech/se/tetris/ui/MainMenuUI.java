@@ -10,10 +10,12 @@ import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
 import javafx.application.Platform;
+import seoultech.se.tetris.infra.dto.Difficulty;
+import seoultech.se.tetris.infra.persistence.SettingsRepository;
 
 public class MainMenuUI {
 
-    private static final String SELECTED_DIFFICULTY_STYLE =
+    private static final String SELECTED_STYLE =
         "-fx-background-color: linear-gradient(to bottom, " +
         "#FFF06A 0%, #FFD329 45%, #FF9D0A 100%);";
 
@@ -53,7 +55,7 @@ public class MainMenuUI {
             boardHeight
         );
 
-        // 난이도는 하나만 선택하며, 처음에는 NORMAL을 선택한다.
+        // 저장된 난이도를 불러오고 하나만 선택
         ToggleButton easyButton =
             (ToggleButton) designRoot.lookup("#easyDifficultyButton");
         ToggleButton normalButton =
@@ -61,8 +63,22 @@ public class MainMenuUI {
         ToggleButton hardButton =
             (ToggleButton) designRoot.lookup("#hardDifficultyButton");
 
-        setupDifficultySelection(easyButton, normalButton, hardButton);
-        normalButton.setSelected(true);
+        setupSelection(easyButton, normalButton, hardButton);
+        Difficulty savedDifficulty = new SettingsRepository().loadSettings().getDifficulty();
+        switch (savedDifficulty) {
+            case EASY -> easyButton.setSelected(true);
+            case NORMAL -> normalButton.setSelected(true);
+            case HARD -> hardButton.setSelected(true);
+        }
+
+        // 게임 모드는 하나만 선택하며 처음에는 일반 모드를 선택
+        ToggleButton normalModeButton =
+            (ToggleButton) designRoot.lookup("#normalModeButton");
+        ToggleButton itemModeButton =
+            (ToggleButton) designRoot.lookup("#itemModeButton");
+
+        setupSelection(normalModeButton, itemModeButton);
+        normalModeButton.setSelected(true);
 
         // SETTING 버튼
         Button settingButton =
@@ -78,7 +94,7 @@ public class MainMenuUI {
             }
         });
 
-        // SCORE BOARD → 메인 메뉴에서 선택한 난이도의 점수판 표시
+        // 메인 메뉴에서 선택한 난이도의 점수판 표시
         Button scoreboardButton =
             (Button) designRoot.lookup("#scoreboardButton");
 
@@ -101,7 +117,9 @@ public class MainMenuUI {
 
         startButton.setOnAction(e -> {
             try {
-                PlayUI.show(stage, resolution);
+                Difficulty difficulty = easyButton.isSelected() ? Difficulty.EASY
+                    : hardButton.isSelected() ? Difficulty.HARD : Difficulty.NORMAL;
+                PlayUI.show(stage, resolution, difficulty, itemModeButton.isSelected());
             } catch (Exception ex) {
                 ex.printStackTrace();
             }
@@ -183,28 +201,28 @@ public class MainMenuUI {
     }
 
 
-    private static void setupDifficultySelection(ToggleButton... buttons) {
-        ToggleGroup difficultyGroup = new ToggleGroup();
+    private static void setupSelection(ToggleButton... buttons) {
+        ToggleGroup selectionGroup = new ToggleGroup();
 
         for (ToggleButton button : buttons) {
-            button.setToggleGroup(difficultyGroup);
+            button.setToggleGroup(selectionGroup);
 
             // Scene Builder에서 지정한 기본 스타일을 유지한다.
             String normalStyle = button.getStyle();
             button.selectedProperty().addListener((observable, oldValue, selected) -> {
                 button.setStyle(selected
-                    ? normalStyle + ";" + SELECTED_DIFFICULTY_STYLE
+                    ? normalStyle + ";" + SELECTED_STYLE
                     : normalStyle);
             });
 
             ButtonEffects.addPressEffect(button);
         }
 
-        // 선택된 버튼을 다시 눌러도 난이도 선택이 사라지지 않도록 한다.
-        difficultyGroup.selectedToggleProperty().addListener(
+        // 선택된 버튼을 다시 눌러도 선택이 사라지지 않도록 함
+        selectionGroup.selectedToggleProperty().addListener(
             (observable, oldToggle, newToggle) -> {
                 if (newToggle == null && oldToggle != null) {
-                    difficultyGroup.selectToggle(oldToggle);
+                    selectionGroup.selectToggle(oldToggle);
                 }
             }
         );
