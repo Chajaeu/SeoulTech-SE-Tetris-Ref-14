@@ -7,6 +7,7 @@ final class ButtonEffects {
     private ButtonEffects() {}
 
     static void addPressEffect(ButtonBase button) {
+        UIInteraction.installButton(button);
         button.setOnMousePressed(e -> {
             button.setTranslateY(3);
             button.setScaleX(0.98);

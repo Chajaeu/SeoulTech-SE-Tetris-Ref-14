@@ -19,9 +19,9 @@
                   <Label alignment="CENTER" prefHeight="29.0" prefWidth="122.0" style="-fx-font-size: 20; -fx-text-fill: #10204A; -fx-font-family: &quot;Arial Black&quot;; -fx-font-weight: bold;" text="Resolution" />
                   <HBox alignment="CENTER" prefHeight="100.0" prefWidth="200.0" style="-fx-border-width: 1 0 0 0; -fx-border-color: #555c66;">
                      <children>
-                        <ToggleButton fx:id="smallResolutionButton" mnemonicParsing="false" prefHeight="49.0" prefWidth="144.0" style="-fx-background-color: rgba(255, 255, 255, 0.06); -fx-text-fill: #10204A; -fx-border-color: #173765; -fx-border-width: 0 1 0 0; -fx-background-radius: 0;" text="SMALL" />
-                        <ToggleButton fx:id="mediumResolutionButton" mnemonicParsing="false" prefHeight="49.0" prefWidth="144.0" style="-fx-background-color: rgba(255, 255, 255, 0.06); -fx-text-fill: #10204A; -fx-border-color: #173765; -fx-border-width: 0 1 0 0; -fx-background-radius: 0;" text="MEDIUM" />
-                        <ToggleButton fx:id="largeResolutionButton" mnemonicParsing="false" prefHeight="49.0" prefWidth="144.0" style="-fx-background-color: rgba(255, 255, 255, 0.06); -fx-text-fill: #10204A; -fx-border-color: #555c66; -fx-border-width: 0 0 0 0; -fx-background-radius: 0;" text="LARGE" />
+                        <ToggleButton fx:id="smallResolutionButton" mnemonicParsing="false" prefHeight="49.0" prefWidth="144.0" style="-fx-background-color: rgba(255, 255, 255, 0.06); -fx-text-fill: #10204A; -fx-border-color: #173765; -fx-border-width: 0 1 0 0; -fx-background-radius: 0; -fx-font-family: &quot;Arial Black&quot;; -fx-font-weight: bold;" text="SMALL" />
+                        <ToggleButton fx:id="mediumResolutionButton" mnemonicParsing="false" prefHeight="49.0" prefWidth="144.0" style="-fx-background-color: rgba(255, 255, 255, 0.06); -fx-text-fill: #10204A; -fx-border-color: #173765; -fx-border-width: 0 1 0 0; -fx-background-radius: 0; -fx-font-family: &quot;Arial Black&quot;; -fx-font-weight: bold;" text="MEDIUM" />
+                        <ToggleButton fx:id="largeResolutionButton" mnemonicParsing="false" prefHeight="49.0" prefWidth="144.0" style="-fx-background-color: rgba(255, 255, 255, 0.06); -fx-text-fill: #10204A; -fx-border-color: #555c66; -fx-border-width: 0 0 0 0; -fx-background-radius: 0; -fx-font-family: &quot;Arial Black&quot;; -fx-font-weight: bold;" text="LARGE" />
                      </children>
                   </HBox>
                </children>
@@ -38,11 +38,11 @@
             </Button>
             <VBox alignment="BASELINE_CENTER" prefHeight="79.0" prefWidth="434.0" spacing="10.0" style="-fx-background-color: linear-gradient(to bottom, #F7FBFF 0%, #DCEAF5 55%, #B8CBDD 100%);">
                <children>
-                  <Label alignment="CENTER" contentDisplay="CENTER" prefHeight="30.0" prefWidth="179.0" style="-fx-font-size: 20; -fx-text-fill: #10204A; -fx-text-family: &quot;Arial Black&quot;; -fx-font-weight: bold;" text="Color Blind Mod" textAlignment="CENTER" />
+                  <Label alignment="CENTER" contentDisplay="CENTER" prefHeight="30.0" prefWidth="179.0" style="-fx-font-size: 20; -fx-text-fill: #10204A; -fx-font-family: &quot;Arial Black&quot;; -fx-font-weight: bold;" text="Color Blind Mod" textAlignment="CENTER" />
                   <HBox alignment="CENTER" prefHeight="100.0" prefWidth="200.0" style="-fx-border-width: 1 0 0 0; -fx-border-color: #555c66;">
                      <children>
-                        <ToggleButton fx:id="colorblindOnButton" maxHeight="-Infinity" minHeight="-Infinity" mnemonicParsing="false" prefHeight="47.0" prefWidth="216.0" style="-fx-text-fill: #10204A; -fx-border-color: #173765; -fx-background-color: rgba(255, 255, 255, 0.06); -fx-border-width: 0 1 0 0; -fx-background-radius: 0;" text="ON" />
-                        <ToggleButton fx:id="colorblindOFFButton" maxHeight="-Infinity" minHeight="-Infinity" mnemonicParsing="false" prefHeight="47.0" prefWidth="216.0" style="-fx-text-fill: #10204A; -fx-border-color: #173765; -fx-background-color: rgba(255, 255, 255, 0.06); -fx-border-width: 0 1 0 0; -fx-background-radius: 0;" text="OFF" />
+                        <ToggleButton fx:id="colorblindOnButton" maxHeight="-Infinity" minHeight="-Infinity" mnemonicParsing="false" prefHeight="47.0" prefWidth="216.0" style="-fx-text-fill: #10204A; -fx-border-color: #173765; -fx-background-color: rgba(255, 255, 255, 0.06); -fx-border-width: 0 1 0 0; -fx-background-radius: 0; -fx-font-family: &quot;Arial Black&quot;; -fx-font-weight: bold;" text="ON" />
+                        <ToggleButton fx:id="colorblindOFFButton" maxHeight="-Infinity" minHeight="-Infinity" mnemonicParsing="false" prefHeight="47.0" prefWidth="216.0" style="-fx-text-fill: #10204A; -fx-border-color: #173765; -fx-background-color: rgba(255, 255, 255, 0.06); -fx-border-width: 0 1 0 0; -fx-background-radius: 0; -fx-font-family: &quot;Arial Black&quot;; -fx-font-weight: bold;" text="OFF" />
                      </children>
                   </HBox>
                </children>
@@ -51,8 +51,8 @@
       </VBox>
       <HBox alignment="CENTER" layoutX="200.0" layoutY="421.0" prefHeight="72.0" prefWidth="200.0" spacing="31.0">
          <children>
-            <Button fx:id="saveButton" mnemonicParsing="false" prefHeight="25.0" prefWidth="124.0" style="-fx-background-color: linear-gradient(to bottom, #F7FBFF 0%, #DCEAF5 55%, #B8CBDD 100%); -fx-text-fill: #10204A; -fx-border-color: #173765; -fx-background-radius: 5; -fx-border-radius: 5; -fx-border-width: 2;" text="Save" />
-            <Button fx:id="resetButton" mnemonicParsing="false" prefHeight="25.0" prefWidth="124.0" style="-fx-background-color: linear-gradient(to bottom, #F7FBFF 0%, #DCEAF5 55%, #B8CBDD 100%); -fx-text-fill: #10204A; -fx-border-color: #173765; -fx-background-radius: 5; -fx-border-radius: 5; -fx-border-width: 2;" text="Reset" />
+            <Button fx:id="saveButton" mnemonicParsing="false" prefHeight="25.0" prefWidth="124.0" style="-fx-background-color: linear-gradient(to bottom, #F7FBFF 0%, #DCEAF5 55%, #B8CBDD 100%); -fx-text-fill: #10204A; -fx-border-color: #173765; -fx-background-radius: 5; -fx-border-radius: 5; -fx-border-width: 2; -fx-font-family: &quot;Arial Black&quot;; -fx-font-weight: bold;" text="Save" />
+            <Button fx:id="resetButton" mnemonicParsing="false" prefHeight="25.0" prefWidth="124.0" style="-fx-background-color: linear-gradient(to bottom, #F7FBFF 0%, #DCEAF5 55%, #B8CBDD 100%); -fx-text-fill: #10204A; -fx-border-color: #173765; -fx-background-radius: 5; -fx-border-radius: 5; -fx-border-width: 2; -fx-font-family: &quot;Arial Black&quot;; -fx-font-weight: bold;" text="Reset" />
          </children>
       </HBox>
    </children>

@@ -48,8 +48,8 @@
       </VBox>
       <VBox layoutX="100.0" layoutY="450.0" prefHeight="56.0" prefWidth="290.0" style="-fx-effect: dropshadow(gaussian, #10204A, 3, 0.8, 0, 1);">
          <children>
-            <Label alignment="CENTER" prefHeight="14.0" prefWidth="290.0" style="-fx-font-size: 20; -fx-text-fill: white;" text="↑↓ : MOVE" />
-            <Label alignment="CENTER" prefHeight="17.0" prefWidth="290.0" style="-fx-font-size: 20; -fx-text-fill: white;" text="ENTER, CLICK : SELECT" />
+            <Label alignment="CENTER" prefHeight="14.0" prefWidth="290.0" style="-fx-font-size: 20; -fx-text-fill: white; -fx-font-family: &quot;Arial Black&quot;; -fx-font-weight: bold;" text="↑↓ : MOVE" />
+            <Label alignment="CENTER" prefHeight="17.0" prefWidth="290.0" style="-fx-font-size: 20; -fx-text-fill: white; -fx-font-family: &quot;Arial Black&quot;; -fx-font-weight: bold;" text="ENTER, SPACEBAR : SELECT" />
          </children>
       </VBox>
    </children>

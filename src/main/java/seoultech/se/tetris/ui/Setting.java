@@ -1,12 +1,19 @@
 package seoultech.se.tetris.ui;
 
+import java.util.function.Consumer;
+import java.util.function.Predicate;
+
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonBase;
+import javafx.scene.control.Alert;
 import javafx.scene.control.ToggleButton;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.layout.Pane;
+import seoultech.se.tetris.infra.persistence.ScoreRepository;
+import seoultech.se.tetris.infra.persistence.SettingsRepository;
+import seoultech.se.tetris.infra.dto.SettingsDTO;
 
 public class Setting {
 
@@ -20,6 +27,16 @@ public class Setting {
 
     public static Parent create(UIResolution.Size currentResolution)
             throws Exception {
+        return create(currentResolution, selectedResolution -> {});
+    }
+
+    public static Parent create(UIResolution.Size currentResolution,
+            Consumer<UIResolution.Size> onSaved) throws Exception {
+        return create(currentResolution, onSaved, () -> {});
+    }
+
+    public static Parent create(UIResolution.Size currentResolution,
+            Consumer<UIResolution.Size> onSaved, Runnable onResetSaved) throws Exception {
 
         FXMLLoader loader = new FXMLLoader(
             Setting.class.getResource("fxml/Setting.fxml")
@@ -105,8 +122,16 @@ public class Setting {
 
         setupSelection(colorblindOnButton, colorblindOFFButton);
 
-        // bd 연결전 기본값 추후 수정필요
-        colorblindOFFButton.setSelected(true);
+        // 마지막으로 저장한 색약 모드 표시
+        SettingsRepository settingsRepository = new SettingsRepository();
+        SettingsDTO[] draft = {settingsRepository.loadSettings()};
+        boolean[] keysChanged = {false};
+        boolean[] settingsResetPending = {false};
+        if (draft[0].isColorblindMode()) {
+            colorblindOnButton.setSelected(true);
+        } else {
+            colorblindOFFButton.setSelected(true);
+        }
 
 
         // 메인 메뉴와 같은 버튼 눌림 효과
@@ -123,16 +148,31 @@ public class Setting {
         // 키 설정
         keySettingButton.setOnAction(e -> {
             try {
-                openKeySettings((Pane) root);
+                openKeySettings((Pane) root, draft[0], keys -> {
+                    // 키 설정창의 Save는 즉시 저장. 전체 초기화 예약 중일 때만 최종 Save까지 대기
+                    if (!settingsResetPending[0]) {
+                        SettingsDTO settings = settingsRepository.loadSettings();
+                        KeySetting.copyKeys(keys, settings);
+                        if (!settingsRepository.saveSettings(settings)) {
+                            return false;
+                        }
+                    }
+                    KeySetting.copyKeys(keys, draft[0]);
+                    keysChanged[0] = settingsResetPending[0];
+                    return true;
+                }, settingsResetPending[0]);
             } catch (Exception ex) {
                 ex.printStackTrace();
             }
         });
 
 
-        // 스코어보드 초기화
+        // 초기화는 예약만 표시하고, Save에서 실제 기록 삭제
+        boolean[] scoreboardResetPending = {false};
+        String scoreboardResetStyle = scoreboardResetButton.getStyle();
         scoreboardResetButton.setOnAction(e -> {
-            System.out.println("스코어보드 초기화");
+            scoreboardResetPending[0] = true;
+            scoreboardResetButton.setStyle(scoreboardResetStyle + ";" + SELECTED_STYLE);
         });
 
 
@@ -150,28 +190,63 @@ public class Setting {
             boolean colorblindMode =
                 colorblindOnButton.isSelected();
 
-            System.out.println(
-                "선택된 해상도: " + selectedResolution
-            );
+            // 전체 초기화도 Save 전까지 파일에 반영하지 않음
+            SettingsDTO settings = settingsResetPending[0]
+                ? SettingsDTO.defaults() : settingsRepository.loadSettings();
+            if (keysChanged[0]) {
+                KeySetting.copyKeys(draft[0], settings);
+            }
+            settings.setDisplaySize(selectedResolution.toDisplaySize());
+            settings.setColorblindMode(colorblindMode);
+            if (!settingsRepository.saveSettings(settings)) {
+                Alert alert = new Alert(Alert.AlertType.ERROR);
+                alert.initOwner(root.getScene().getWindow());
+                alert.setTitle("설정 저장 실패");
+                alert.setHeaderText("설정을 저장하지 못했습니다.");
+                alert.setContentText("설정 저장 위치를 확인한 뒤 다시 시도해주세요.");
+                alert.showAndWait();
+                return;
+            }
 
-            System.out.println(
-                "색약 모드: " + colorblindMode
-            );
-
-            // 추후 Infra 연결 필요
+            if (scoreboardResetPending[0]) {
+                if (!new ScoreRepository().resetScoreboard()) {
+                    Alert alert = new Alert(Alert.AlertType.ERROR);
+                    alert.initOwner(root.getScene().getWindow());
+                    alert.setTitle("스코어보드 초기화 실패");
+                    alert.setHeaderText("기록을 초기화하지 못했습니다.");
+                    alert.setContentText("기록 저장 위치를 확인한 뒤 다시 시도해주세요.");
+                    alert.showAndWait();
+                    return;
+                }
+                scoreboardResetPending[0] = false;
+                scoreboardResetButton.setStyle(scoreboardResetStyle);
+            }
 
             close(root);
+            if (settingsResetPending[0]) {
+                onResetSaved.run();
+            }
+            onSaved.accept(selectedResolution);
         });
 
 
-        // 설정 초기화
+        // 전체 설정의 기본값을 예약하고 Save에서 실제 저장
+        String resetStyle = resetButton.getStyle();
         resetButton.setOnAction(e -> {
-
+            draft[0] = SettingsDTO.defaults();
+            keysChanged[0] = true;
+            settingsResetPending[0] = true;
             mediumResolutionButton.setSelected(true);
             colorblindOFFButton.setSelected(true);
+            resetButton.setStyle(resetStyle + ";" + SELECTED_STYLE);
         });
 
 
+        UIInteraction.installNavigation(root, switch (currentResolution) {
+            case SMALL -> smallResolutionButton;
+            case MEDIUM -> mediumResolutionButton;
+            case LARGE -> largeResolutionButton;
+        });
         return root;
     }
 
@@ -184,12 +259,16 @@ public class Setting {
         }
     }
 
-    private static void openKeySettings(Pane settingsPane) throws Exception {
+    private static void openKeySettings(Pane settingsPane, SettingsDTO initialSettings,
+            Predicate<SettingsDTO> onSave, boolean settingsResetPending) throws Exception {
         if (settingsPane.lookup("#keySettingPopup") != null) {
             return;
         }
 
-        Pane keySettings = (Pane) KeySetting.create();
+        String savedMessage = settingsResetPending
+            ? "키 설정을 반영했습니다. 전체 초기화는 설정 화면 SAVE로 적용됩니다."
+            : "키 설정을 저장했습니다.";
+        Pane keySettings = (Pane) KeySetting.create(initialSettings, onSave, savedMessage);
         keySettings.setId("keySettingPopup");
         keySettings.setLayoutX(
             (settingsPane.getPrefWidth() - keySettings.getPrefWidth()) / 2
@@ -202,25 +281,25 @@ public class Setting {
     }
 
 
-    // 선택된 해상도 반환(bd로 반환 연결 필요)
+    // 선택된 해상도 반환
     private static UIResolution.Size getSelectedResolution(
         ToggleButton smallResolutionButton,
         ToggleButton mediumResolutionButton,
         ToggleButton largeResolutionButton,
         UIResolution.Size currentResolution) {
 
-    if (smallResolutionButton.isSelected()) {
-        return UIResolution.Size.SMALL;
-    }
-    if (mediumResolutionButton.isSelected()) {
-        return UIResolution.Size.MEDIUM;
-    }
-    if (largeResolutionButton.isSelected()) {
-        return UIResolution.Size.LARGE;
-    }
+        if (smallResolutionButton.isSelected()) {
+            return UIResolution.Size.SMALL;
+        }
+        if (mediumResolutionButton.isSelected()) {
+            return UIResolution.Size.MEDIUM;
+        }
+        if (largeResolutionButton.isSelected()) {
+            return UIResolution.Size.LARGE;
+        }
 
-    return currentResolution;
-}
+        return currentResolution;
+    }
 
 
     // 선택된 옵션 표시와 선택 유지

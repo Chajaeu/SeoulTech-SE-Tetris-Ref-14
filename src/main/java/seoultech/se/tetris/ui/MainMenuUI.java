@@ -10,7 +10,11 @@ import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
 import javafx.application.Platform;
+import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.SimpleObjectProperty;
+import java.util.function.Consumer;
 import seoultech.se.tetris.infra.dto.Difficulty;
+import seoultech.se.tetris.infra.dto.GameMode;
 import seoultech.se.tetris.infra.persistence.SettingsRepository;
 
 public class MainMenuUI {
@@ -27,33 +31,8 @@ public class MainMenuUI {
         );
 
         Pane designRoot = (Pane) root;
-
-        // 설정에서 선택된 실제 화면 크기
-        int boardWidth = resolution.getWidth();
-        int boardHeight = resolution.getHeight();
-
-        // FXML에 설정된 원본 설계 크기
-        double designWidth = designRoot.getPrefWidth();
-        double designHeight = designRoot.getPrefHeight();
-
-        // 실제 해상도에 맞게 전체 UI 크기 조절
-        double scaleX = boardWidth / designWidth;
-        double scaleY = boardHeight / designHeight;
-
-        double scale = Math.min(scaleX, scaleY);
-
-        designRoot.setScaleX(scale);
-        designRoot.setScaleY(scale);
-
-        // 실제 창을 담당하는 바깥쪽 Pane
+        ObjectProperty<UIResolution.Size> currentResolution = new SimpleObjectProperty<>(resolution);
         StackPane screen = new StackPane(designRoot);
-        screen.setPrefSize(boardWidth, boardHeight);
-
-        Scene scene = new Scene(
-            screen,
-            boardWidth,
-            boardHeight
-        );
 
         // 저장된 난이도를 불러오고 하나만 선택
         ToggleButton easyButton =
@@ -87,25 +66,31 @@ public class MainMenuUI {
         settingButton.setOnAction(e -> {
 
             try {
-                openSettings(designRoot, resolution);
+                openSettings(designRoot, currentResolution.get(), selectedResolution -> {
+                    if (selectedResolution != currentResolution.get()) {
+                        currentResolution.set(selectedResolution);
+                        applyResolution(stage, designRoot, screen, selectedResolution);
+                    }
+                }, () -> normalButton.setSelected(true));
 
             } catch (Exception ex) {
                 ex.printStackTrace();
             }
         });
 
-        // 메인 메뉴에서 선택한 난이도의 점수판 표시
+        // 메인 메뉴에서 선택한 모드와 난이도의 점수판 표시
         Button scoreboardButton =
             (Button) designRoot.lookup("#scoreboardButton");
 
         scoreboardButton.setOnAction(e -> {
-            Scoreboard.Difficulty difficulty = easyButton.isSelected()
-                ? Scoreboard.Difficulty.EASY
+            Difficulty difficulty = easyButton.isSelected()
+                ? Difficulty.EASY
                 : hardButton.isSelected()
-                    ? Scoreboard.Difficulty.HARD
-                    : Scoreboard.Difficulty.NORMAL;
+                    ? Difficulty.HARD
+                    : Difficulty.NORMAL;
+            GameMode mode = itemModeButton.isSelected() ? GameMode.ITEM : GameMode.NORMAL;
             try {
-                openScoreboard(designRoot, difficulty);
+                openScoreboard(designRoot, mode, difficulty);
             } catch (Exception ex) {
                 ex.printStackTrace();
             }
@@ -119,7 +104,7 @@ public class MainMenuUI {
             try {
                 Difficulty difficulty = easyButton.isSelected() ? Difficulty.EASY
                     : hardButton.isSelected() ? Difficulty.HARD : Difficulty.NORMAL;
-                PlayUI.show(stage, resolution, difficulty, itemModeButton.isSelected());
+                PlayUI.show(stage, currentResolution.get(), difficulty, itemModeButton.isSelected());
             } catch (Exception ex) {
                 ex.printStackTrace();
             }
@@ -139,17 +124,38 @@ public class MainMenuUI {
             }
         });
 
+        UIInteraction.installNavigation(designRoot, startButton);
+
         stage.setTitle("Tetris");
-        stage.setScene(scene);
         stage.setResizable(false);
+        applyResolution(stage, designRoot, screen, resolution);
         stage.show();
+    }
+
+    // 메뉴를 새로 만들지 않고 선택한 난이도와 모드를 유지하며 크기만 변경
+    private static void applyResolution(Stage stage, Pane designRoot, StackPane screen,
+            UIResolution.Size resolution) {
+        double scale = Math.min(resolution.getWidth() / designRoot.getPrefWidth(),
+            resolution.getHeight() / designRoot.getPrefHeight());
+        designRoot.setScaleX(scale);
+        designRoot.setScaleY(scale);
+        screen.setPrefSize(resolution.getWidth(), resolution.getHeight());
+
+        // 기존 Scene에서 분리한 뒤 선택한 화면 크기로 다시 연결
+        if (stage.getScene() != null && stage.getScene().getRoot() == screen) {
+            stage.getScene().setRoot(new Pane());
+        }
+        stage.setScene(new Scene(screen, resolution.getWidth(), resolution.getHeight()));
+        stage.sizeToScene();
     }
 
 
     // SettingsUI를 MainMenu 위에 팝업으로 표시
     private static void openSettings(
             Pane designRoot,
-            UIResolution.Size resolution)
+            UIResolution.Size resolution,
+            Consumer<UIResolution.Size> onSaved,
+            Runnable onResetSaved)
             throws Exception {
 
         // 이미 설정창이 열려 있으면 또 만들지 않음
@@ -158,7 +164,7 @@ public class MainMenuUI {
             return;
         }
 
-        Parent settings = Setting.create(resolution);
+        Parent settings = Setting.create(resolution, onSaved, onResetSaved);
 
         // MainMenu에서 팝업을 식별하기 위한 ID
         settings.setId("settingPopup");
@@ -183,13 +189,13 @@ public class MainMenuUI {
 
 
     private static void openScoreboard(
-            Pane designRoot, Scoreboard.Difficulty difficulty) throws Exception {
+            Pane designRoot, GameMode mode, Difficulty difficulty) throws Exception {
         if (designRoot.lookup("#scoreboardPopup") != null
                 || designRoot.lookup("#settingPopup") != null) {
             return;
         }
 
-        Pane scoreboard = (Pane) Scoreboard.create(difficulty);
+        Pane scoreboard = (Pane) Scoreboard.create(mode, difficulty);
         scoreboard.setId("scoreboardPopup");
         scoreboard.setLayoutX(
             (designRoot.getPrefWidth() - scoreboard.getPrefWidth()) / 2

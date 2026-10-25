@@ -63,6 +63,8 @@
             </children>
         </VBox>
 
+        <Label fx:id="keySettingStatus" alignment="CENTER" layoutX="25.0" layoutY="418.0" prefWidth="550.0" prefHeight="20.0" />
+
         <HBox alignment="CENTER" layoutX="169.0" layoutY="440.0" prefHeight="35.0" prefWidth="262.0" spacing="18.0">
             <children>
                 <Button fx:id="saveButton" mnemonicParsing="false" prefHeight="29.0" prefWidth="122.0" style="-fx-background-color: linear-gradient(to bottom, #FFF06A 0%, #FFD329 45%, #FF9D0A 100%); -fx-text-fill: #10204A; -fx-font-family: 'Arial Black'; -fx-font-weight: bold; -fx-border-color: #173765; -fx-border-width: 2; -fx-border-radius: 5; -fx-background-radius: 5;" text="SAVE" />

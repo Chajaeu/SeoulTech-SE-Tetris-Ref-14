@@ -13,7 +13,7 @@ public class MainMenuPreview {
     public static class MainMenuApplication extends Application {
         @Override
         public void start(Stage stage) throws Exception {
-            MainMenuUI.show(stage, UIResolution.Size.LARGE);
+            MainMenuUI.show(stage, UIResolution.loadSavedSize());
         }
     }
 }
