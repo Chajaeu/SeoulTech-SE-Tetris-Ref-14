@@ -14,9 +14,15 @@
    <children>
       <Label layoutX="172.0" layoutY="28.0" style="-fx-font-size: 40; -fx-font-family: &quot;Arial Black&quot;; -fx-text-fill: #10204A;" text="ScoreBoard" />
       <Button fx:id="closeButton" layoutX="533.0" layoutY="10.0" mnemonicParsing="false" style="-fx-background-color: transparent; -fx-text-fill: #10204A; -fx-font-weight: bold; -fx-font-size: 16;" text="   X   " />
-      <VBox layoutX="83.0" layoutY="101.0" prefHeight="320.0" prefWidth="434.0" style="-fx-background-color: rgba(15, 18, 24, 0.55); -fx-border-color: #173765; -fx-border-width: 5; -fx-border-radius: 3; -fx-background-radius: 5;">
+      <HBox alignment="CENTER" layoutX="129.0" layoutY="82.0" prefHeight="25.0" prefWidth="343.0" spacing="12.0">
          <children>
-            <GridPane fx:id="scoreGrid" alignment="CENTER" prefHeight="331.0" prefWidth="424.0" style="-fx-background-color: #E8F1F8; -fx-border-color: #10204A;">
+            <ToggleButton fx:id="normalModeButton" mnemonicParsing="false" prefHeight="25.0" prefWidth="165.0" style="-fx-background-color: linear-gradient(to bottom, #F7FBFF 0%, #DCEAF5 55%, #B8CBDD 100%); -fx-text-fill: #10204A; -fx-border-color: #173765; -fx-background-radius: 5; -fx-border-radius: 5; -fx-border-width: 2; -fx-font-family: &quot;Arial Black&quot;; -fx-font-weight: bold;" text="NORMAL MODE" />
+            <ToggleButton fx:id="itemModeButton" mnemonicParsing="false" prefHeight="25.0" prefWidth="165.0" style="-fx-background-color: linear-gradient(to bottom, #F7FBFF 0%, #DCEAF5 55%, #B8CBDD 100%); -fx-text-fill: #10204A; -fx-border-color: #173765; -fx-background-radius: 5; -fx-border-radius: 5; -fx-border-width: 2; -fx-font-family: &quot;Arial Black&quot;; -fx-font-weight: bold;" text="ITEM MODE" />
+         </children>
+      </HBox>
+      <VBox layoutX="83.0" layoutY="117.0" prefHeight="304.0" prefWidth="434.0" style="-fx-background-color: rgba(15, 18, 24, 0.55); -fx-border-color: #173765; -fx-border-width: 5; -fx-border-radius: 3; -fx-background-radius: 5;">
+         <children>
+            <GridPane fx:id="scoreGrid" alignment="CENTER" prefHeight="294.0" prefWidth="424.0" style="-fx-background-color: #E8F1F8; -fx-border-color: #10204A;">
               <columnConstraints>
                 <ColumnConstraints halignment="CENTER" hgrow="SOMETIMES" maxWidth="137.0" minWidth="10.0" prefWidth="68.0" />
                 <ColumnConstraints halignment="CENTER" hgrow="SOMETIMES" maxWidth="211.0" minWidth="10.0" prefWidth="159.0" />
@@ -45,9 +51,9 @@
       </VBox>
       <HBox alignment="CENTER" layoutX="129.0" layoutY="421.0" prefHeight="72.0" prefWidth="343.0" spacing="31.0">
          <children>
-            <ToggleButton fx:id="easyDifficultyButton" mnemonicParsing="false" prefHeight="25.0" prefWidth="124.0" style="-fx-background-color: linear-gradient(to bottom, #F7FBFF 0%, #DCEAF5 55%, #B8CBDD 100%); -fx-text-fill: #10204A; -fx-border-color: #173765; -fx-background-radius: 5; -fx-border-radius: 5; -fx-border-width: 2;" text="EASY" />
-            <ToggleButton fx:id="normalDifficultyButton" mnemonicParsing="false" prefHeight="25.0" prefWidth="124.0" style="-fx-background-color: linear-gradient(to bottom, #F7FBFF 0%, #DCEAF5 55%, #B8CBDD 100%); -fx-text-fill: #10204A; -fx-border-color: #173765; -fx-background-radius: 5; -fx-border-radius: 5; -fx-border-width: 2;" text="NORMAL" />
-            <ToggleButton fx:id="hardDifficultyButton" mnemonicParsing="false" prefHeight="25.0" prefWidth="124.0" style="-fx-background-color: linear-gradient(to bottom, #F7FBFF 0%, #DCEAF5 55%, #B8CBDD 100%); -fx-text-fill: #10204A; -fx-border-color: #173765; -fx-background-radius: 5; -fx-border-radius: 5; -fx-border-width: 2;" text="HARD" />
+            <ToggleButton fx:id="easyDifficultyButton" mnemonicParsing="false" prefHeight="25.0" prefWidth="124.0" style="-fx-background-color: linear-gradient(to bottom, #F7FBFF 0%, #DCEAF5 55%, #B8CBDD 100%); -fx-text-fill: #10204A; -fx-border-color: #173765; -fx-background-radius: 5; -fx-border-radius: 5; -fx-border-width: 2; -fx-font-family: &quot;Arial Black&quot;; -fx-font-weight: bold;" text="EASY" />
+            <ToggleButton fx:id="normalDifficultyButton" mnemonicParsing="false" prefHeight="25.0" prefWidth="124.0" style="-fx-background-color: linear-gradient(to bottom, #F7FBFF 0%, #DCEAF5 55%, #B8CBDD 100%); -fx-text-fill: #10204A; -fx-border-color: #173765; -fx-background-radius: 5; -fx-border-radius: 5; -fx-border-width: 2; -fx-font-family: &quot;Arial Black&quot;; -fx-font-weight: bold;" text="NORMAL" />
+            <ToggleButton fx:id="hardDifficultyButton" mnemonicParsing="false" prefHeight="25.0" prefWidth="124.0" style="-fx-background-color: linear-gradient(to bottom, #F7FBFF 0%, #DCEAF5 55%, #B8CBDD 100%); -fx-text-fill: #10204A; -fx-border-color: #173765; -fx-background-radius: 5; -fx-border-radius: 5; -fx-border-width: 2; -fx-font-family: &quot;Arial Black&quot;; -fx-font-weight: bold;" text="HARD" />
          </children>
       </HBox>
    </children>

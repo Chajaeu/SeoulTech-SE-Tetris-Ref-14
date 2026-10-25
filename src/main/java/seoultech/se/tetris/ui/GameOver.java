@@ -30,6 +30,7 @@ public class GameOver {
             }
         });
 
+        UIInteraction.installNavigation(root, retryButton);
         return root;
     }
 }

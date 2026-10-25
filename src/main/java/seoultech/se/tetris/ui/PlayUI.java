@@ -11,11 +11,15 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
 import javafx.scene.control.Alert;
+import javafx.scene.control.Tooltip;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.Pane;
+import javafx.scene.layout.ColumnConstraints;
+import javafx.scene.layout.GridPane;
+import javafx.scene.layout.RowConstraints;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
@@ -23,11 +27,14 @@ import javafx.scene.transform.Scale;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
 import javafx.util.Duration;
+import java.util.EnumMap;
+import java.util.Map;
 import seoultech.se.tetris.game.Cell;
 import seoultech.se.tetris.game.Game;
 import seoultech.se.tetris.infra.dto.Difficulty;
 import seoultech.se.tetris.infra.dto.GameMode;
 import seoultech.se.tetris.infra.dto.SettingsDTO;
+import seoultech.se.tetris.infra.dto.ScoreDTO;
 import seoultech.se.tetris.infra.integration.GameSessionService;
 import seoultech.se.tetris.infra.persistence.ScoreRepository;
 import seoultech.se.tetris.infra.persistence.SettingsRepository;
@@ -41,6 +48,9 @@ public class PlayUI {
     private UIResolution.Size resolution;
     private Difficulty difficulty;
     private boolean itemMode;
+    private boolean colorblindMode;
+    private KeyCode pauseKey;
+    private final Map<KeyCode, Runnable> gameActions = new EnumMap<>(KeyCode.class);
     private Pane designRoot;
     private Pane playboardPane;
     private Pane nextPane;
@@ -77,6 +87,7 @@ public class PlayUI {
         Parent root = loader.load();
 
         designRoot = (Pane) root;
+        UIInteraction.installStyles(designRoot);
         designRoot.setFocusTraversable(true);
         playboardPane = (Pane) loader.getNamespace().get("playboard_pane");
         nextPane = (Pane) loader.getNamespace().get("next_pane");
@@ -127,21 +138,26 @@ public class PlayUI {
     }
 
     private void setupKeyboard(Scene scene) {
+        UIInteraction.trackInput(scene);
         scene.addEventFilter(KeyEvent.KEY_PRESSED, e -> {
-            if (e.getCode() == KeyCode.ESCAPE) {
+            // 팝업 버튼이 처리한 Enter/Space를 게임 입력으로 다시 사용하지 않음
+            if (e.isConsumed()) {
+                return;
+            }
+            // 팝업의 버튼 조작은 허용하고, Core에는 입력을 전달 X
+            if (pauseOverlay != null || gameOverOverlay != null) {
+                return;
+            }
+
+            if (e.getCode() == pauseKey) {
                 e.consume();
-                if (pauseOverlay == null && !game.getIsGameover()) {
+                if (!game.getIsGameover()) {
                     try {
                         openPause();
                     } catch (Exception ex) {
                         ex.printStackTrace();
                     }
                 }
-                return;
-            }
-
-            // 팝업의 버튼 조작은 허용하고, Core에는 입력을 전달 X
-            if (pauseOverlay != null || gameOverOverlay != null) {
                 return;
             }
 
@@ -165,8 +181,33 @@ public class PlayUI {
         if (gameOverOverlay != null) {
             return;
         }
-        Parent popup = GameOver.create(this::retryGame, this::returnToMainMenu);
+        // 등록 대상이면 이름 입력 후 점수판, 그 외에는 게임오버 메뉴 표시
+        Parent popup = gameSession.canSubmitScore()
+            ? ScoreSubmit.create(gameSession, this::showGameOverActions, this::showSavedScoreboard)
+            : GameOver.create(this::retryGame, this::returnToMainMenu);
         gameOverOverlay = showOverlay(popup, "gameOverOverlay");
+    }
+
+    private void showGameOverActions() {
+        try {
+            gameOverOverlay.getChildren().setAll(GameOver.create(this::retryGame, this::returnToMainMenu));
+            gameOverOverlay.requestFocus();
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+    }
+
+    private void showSavedScoreboard(String savedId) {
+        refreshScoreboard(savedId);
+        try {
+            Parent popup = Scoreboard.create(gameSession.getGameMode(), gameSession.getDifficulty(),
+                savedId, this::showGameOverActions);
+            gameOverOverlay.getChildren().setAll(popup);
+            gameOverOverlay.requestFocus();
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            showGameOverActions();
+        }
     }
 
     // 화면 전체를 덮어 팝업 뒤쪽 클릭을 차단
@@ -218,6 +259,7 @@ public class PlayUI {
         // 기존 키, 해상도, 색약 설정은 보존하고 선택한 난이도만 저장
         SettingsDTO settings = settingsRepository.loadSettings();
         settings.setDifficulty(difficulty);
+        colorblindMode = settings.isColorblindMode();
         if (!settingsRepository.saveSettings(settings)) {
             Alert alert = new Alert(Alert.AlertType.ERROR);
             alert.initOwner(stage);
@@ -231,8 +273,64 @@ public class PlayUI {
         // Infra가 저장된 난이도를 Core 값으로 변환해 게임 생성
         gameSession = new GameSessionService(settingsRepository, new ScoreRepository());
         game = gameSession.startGame(itemMode ? GameMode.ITEM : GameMode.NORMAL);
-        // ScoreRepository의 기록은 추후 API에 별도로 연결
+        pauseKey = KeyCode.valueOf(settings.getKeyPause());
+        gameActions.put(KeyCode.valueOf(settings.getKeyLeft()), game::moveLeft);
+        gameActions.put(KeyCode.valueOf(settings.getKeyRight()), game::moveRight);
+        gameActions.put(KeyCode.valueOf(settings.getKeyDown()), () -> {
+            game.moveDown();
+            restartFallTimer();
+        });
+        gameActions.put(KeyCode.valueOf(settings.getKeyRotate()), game::rotateCW);
+        gameActions.put(KeyCode.valueOf(settings.getKeyDrop()), game::harddrop);
+        refreshScoreboard(null);
         return true;
+    }
+
+    // 게임 시작과 기록 저장 뒤에만 조회하여, 낙하마다 파일을 다시 읽지 않음
+    private void refreshScoreboard(String highlightedId) {
+        var records = gameSession.getTopScores(gameSession.getGameMode(), gameSession.getDifficulty());
+        GridPane grid = new GridPane();
+        grid.setId("gameScoreGrid");
+        grid.prefWidthProperty().bind(scoreboardPane.widthProperty());
+        grid.prefHeightProperty().bind(scoreboardPane.heightProperty());
+        for (double width : new double[] {15, 48, 37}) {
+            ColumnConstraints column = new ColumnConstraints();
+            column.setPercentWidth(width);
+            grid.getColumnConstraints().add(column);
+        }
+        for (int row = 0; row <= 10; row++) {
+            RowConstraints constraint = new RowConstraints();
+            constraint.setPercentHeight(100.0 / 11);
+            grid.getRowConstraints().add(constraint);
+        }
+        String[] headers = {"#", "NAME", "SCORE"};
+        for (int col = 0; col < headers.length; col++) {
+            grid.add(scoreboardCell(headers[col], "sideHeader" + col, true, false, col), col, 0);
+        }
+        for (int rank = 1; rank <= 10; rank++) {
+            ScoreDTO record = rank <= records.size() ? records.get(rank - 1) : null;
+            boolean highlighted = record != null && record.getId().equals(highlightedId);
+            grid.add(scoreboardCell(Integer.toString(rank), "sideRank" + rank, false, highlighted, 0), 0, rank);
+            grid.add(scoreboardCell(record == null ? "—" : record.getPlayerName(),
+                "sideName" + rank, false, highlighted, 1), 1, rank);
+            grid.add(scoreboardCell(record == null ? "—" : Scoreboard.formatScore(record.getScore()),
+                "sideScore" + rank, false, highlighted, 2), 2, rank);
+        }
+        scoreboardPane.getChildren().setAll(grid);
+    }
+
+    private Label scoreboardCell(String text, String id, boolean header, boolean highlighted, int column) {
+        Label label = new Label(text);
+        label.setId(id);
+        label.setMinSize(0, 0);
+        label.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
+        label.setAlignment(Pos.CENTER);
+        label.setTooltip(new Tooltip(text));
+        label.setStyle("-fx-font-size: 11px;-fx-padding: 0 2;"
+            + "-fx-text-fill: white;"
+            + (header ? "-fx-font-weight: bold;" : ""));
+        UIInteraction.markRecord(label, highlighted, column);
+        return label;
     }
 
     private boolean handleGameKey(KeyCode code) {
@@ -242,27 +340,11 @@ public class PlayUI {
         if (deleteAnimation != null) {
             return true;
         }
-        // TODO Infra: 저장된 키 설정으로 분기. 아래는 기본 키의 연결 위치
-        switch (code) {
-            case LEFT:
-                game.moveLeft();
-                break;
-            case RIGHT:
-                game.moveRight();
-                break;
-            case DOWN:
-                game.moveDown();
-                restartFallTimer();
-                break;
-            case UP:
-                game.rotateCW();
-                break;
-            case SPACE:
-                game.harddrop();
-                break;
-            default:
-                return false;
+        Runnable action = gameActions.get(code);
+        if (action == null) {
+            return false;
         }
+        action.run();
         refreshGameView();
         return true;
     }
@@ -368,42 +450,14 @@ public class PlayUI {
                 if (cell.isEmpty() && !showGrid) {
                     continue;
                 }
-                Rectangle tile = new Rectangle(cellSize, cellSize);
-                tile.setFill(cell.isEmpty() ? Color.web("#081423") : colorForCell(cell));
-                tile.setStroke(Color.web(cell.isEmpty() ? "#1C2B3D" : "#FFFFFF"));
-                tile.setStrokeWidth(cell.isEmpty() ? 0.5 : 1);
-                tile.setArcWidth(3);
-                tile.setArcHeight(3);
-                StackPane square = new StackPane(tile);
+                StackPane square = BlockRenderer.createCell(cell, cellSize, colorblindMode);
                 square.setId((showGrid ? "boardCell-" : "nextCell-") + row + "-" + col);
-                square.setUserData(cell);
                 square.setLayoutX(left + col * cellSize);
                 square.setLayoutY(top + row * cellSize);
                 square.setPrefSize(cellSize, cellSize);
-                if (cell.isItem()) {
-                    Label mark = new Label(String.valueOf(cell.getMark()));
-                    mark.setStyle("-fx-text-fill: #10204A; -fx-font-weight: bold; -fx-font-size: 16px;");
-                    square.getChildren().add(mark);
-                }
                 pane.getChildren().add(square);
             }
         }
-    }
-
-    private Color colorForCell(Cell cell) {
-        if (cell.isItem()) {
-            return Color.web("#FFD329");
-        }
-        return Color.web(switch (cell.getType()) {
-            case 'I' -> "#39CFE8";
-            case 'J' -> "#4775E8";
-            case 'L' -> "#F49A38";
-            case 'O' -> "#F4DA43";
-            case 'S' -> "#63C76B";
-            case 'T' -> "#B478DD";
-            case 'Z' -> "#E96773";
-            default -> "#FFFFFF";
-        });
     }
 
     private void stopGameLoop() {

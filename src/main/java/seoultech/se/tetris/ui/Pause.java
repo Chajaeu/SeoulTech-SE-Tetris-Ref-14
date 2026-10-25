@@ -35,6 +35,7 @@ public class Pause {
             }
         });
 
+        UIInteraction.installNavigation(root, resumeButton);
         return root;
     }
 

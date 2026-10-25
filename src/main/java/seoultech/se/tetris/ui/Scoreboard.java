@@ -5,17 +5,20 @@ import javafx.geometry.Pos;
 import javafx.scene.Parent;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.Tooltip;
 import javafx.scene.control.ToggleButton;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Pane;
+import seoultech.se.tetris.infra.dto.Difficulty;
+import seoultech.se.tetris.infra.dto.GameMode;
+import seoultech.se.tetris.infra.dto.ScoreDTO;
+import seoultech.se.tetris.infra.persistence.ScoreRepository;
+
+import java.util.List;
+import java.util.Locale;
 
 public class Scoreboard {
-
-    // UI에서 사용하는 난이도. Core/Infra 연동은 Marge후 예정
-    public enum Difficulty {
-        EASY, NORMAL, HARD
-    }
 
     private static final int MAX_SCORES = 10;
 
@@ -31,10 +34,15 @@ public class Scoreboard {
         "-fx-border-width: 0 0 1 0;";
 
     public static Parent create() throws Exception {
-        return create(Difficulty.NORMAL);
+        return create(GameMode.NORMAL, Difficulty.NORMAL);
     }
 
-    public static Parent create(Difficulty currentDifficulty) throws Exception {
+    public static Parent create(GameMode currentMode, Difficulty currentDifficulty) throws Exception {
+        return create(currentMode, currentDifficulty, null, () -> {});
+    }
+
+    public static Parent create(GameMode currentMode, Difficulty currentDifficulty,
+            String highlightedId, Runnable onClose) throws Exception {
         FXMLLoader loader = new FXMLLoader(
             Scoreboard.class.getResource("fxml/Scoreboard.fxml")
         );
@@ -48,6 +56,11 @@ public class Scoreboard {
             (ToggleButton) loader.getNamespace().get("normalDifficultyButton");
         ToggleButton hardButton =
             (ToggleButton) loader.getNamespace().get("hardDifficultyButton");
+        ToggleButton normalModeButton =
+            (ToggleButton) loader.getNamespace().get("normalModeButton");
+        ToggleButton itemModeButton =
+            (ToggleButton) loader.getNamespace().get("itemModeButton");
+        ScoreRepository repository = new ScoreRepository();
 
         // 제목 행은 FXML의 Label을 그대로 사용하며 각 열 너비만큼 넓힘
         for (var node : scoreGrid.getChildren()) {
@@ -58,7 +71,7 @@ public class Scoreboard {
             }
         }
 
-        // API 연결 전이므로 실제 기록 대신 상위 10개 기록을 표시할 자리만 제작
+        // 기록이 없는 순위는 빈칸으로 표시
         for (int rank = 1; rank <= MAX_SCORES; rank++) {
             scoreGrid.add(createCell(String.valueOf(rank), "rank" + rank), 0, rank);
             scoreGrid.add(createCell("—", "name" + rank), 1, rank);
@@ -66,44 +79,71 @@ public class Scoreboard {
         }
 
         ToggleGroup difficultyGroup = new ToggleGroup();
-        configureDifficulty(easyButton, Difficulty.EASY, difficultyGroup);
-        configureDifficulty(normalButton, Difficulty.NORMAL, difficultyGroup);
-        configureDifficulty(hardButton, Difficulty.HARD, difficultyGroup);
+        configureChoice(easyButton, Difficulty.EASY, difficultyGroup);
+        configureChoice(normalButton, Difficulty.NORMAL, difficultyGroup);
+        configureChoice(hardButton, Difficulty.HARD, difficultyGroup);
+        ToggleGroup modeGroup = new ToggleGroup();
+        configureChoice(normalModeButton, GameMode.NORMAL, modeGroup);
+        configureChoice(itemModeButton, GameMode.ITEM, modeGroup);
 
-        difficultyGroup.selectedToggleProperty().addListener(
-            (observable, oldToggle, newToggle) -> {
-                if (newToggle == null) {
-                    // 선택된 버튼을 다시 눌러도 선택을 해제하지 않는다.
-                    if (oldToggle != null) {
-                        difficultyGroup.selectToggle(oldToggle);
-                    }
-                    return;
-                }
-
-                /*
-                 * API 연동 필요
-                 * - newToggle.getUserData()의 Difficulty를 Infra 난이도에 매핑
-                 * - 일반/아이템 모드와 선택 난이도에 해당하는 상위 10개 조회
-                 * - 기존 name1~name10, score1~score10 Label을 먼저 비운 뒤 갱신
-                 * - 점수는 천 단위 쉼표로 표시하고 기록이 없는 칸은 "—" 유지
-                 * - 게임 종료 후 새 기록을 보여주는 경우 해당 행을 강조
-                 */
+        Runnable refresh = () -> {
+            if (modeGroup.getSelectedToggle() == null || difficultyGroup.getSelectedToggle() == null) {
+                return;
             }
-        );
+            GameMode mode = (GameMode) modeGroup.getSelectedToggle().getUserData();
+            Difficulty difficulty = (Difficulty) difficultyGroup.getSelectedToggle().getUserData();
+            List<ScoreDTO> scores = repository.getTopScores(mode, difficulty);
+            for (int rank = 1; rank <= MAX_SCORES; rank++) {
+                ScoreDTO record = rank <= scores.size() ? scores.get(rank - 1) : null;
+                boolean highlighted = record != null && record.getId().equals(highlightedId);
+                Label name = (Label) root.lookup("#name" + rank);
+                Label score = (Label) root.lookup("#score" + rank);
+                name.setText(record == null ? "—" : record.getPlayerName());
+                name.setTooltip(record == null ? null : new Tooltip(record.getPlayerName()));
+                score.setText(record == null ? "—" : formatScore(record.getScore()));
+                String[] columns = {"rank", "name", "score"};
+                for (int col = 0; col < columns.length; col++) {
+                    Label cell = (Label) root.lookup("#" + columns[col] + rank);
+                    cell.setUserData(record);
+                    cell.setStyle(CELL_STYLE);
+                    UIInteraction.markRecord(cell, highlighted, col);
+                }
+            }
+        };
+        setupRefresh(modeGroup, refresh);
+        setupRefresh(difficultyGroup, refresh);
 
         switch (currentDifficulty) {
             case EASY -> easyButton.setSelected(true);
             case NORMAL -> normalButton.setSelected(true);
             case HARD -> hardButton.setSelected(true);
         }
+        (currentMode == GameMode.ITEM ? itemModeButton : normalModeButton).setSelected(true);
 
         closeButton.setOnAction(e -> {
             if (root.getParent() instanceof Pane parent) {
                 parent.getChildren().remove(root);
             }
+            onClose.run();
         });
+        ButtonEffects.addPressEffect(closeButton);
+        UIInteraction.installNavigation(root, currentMode == GameMode.ITEM ? itemModeButton : normalModeButton);
 
         return root;
+    }
+
+    static String formatScore(int score) {
+        return String.format(Locale.US, "%,d", score);
+    }
+
+    private static void setupRefresh(ToggleGroup group, Runnable refresh) {
+        group.selectedToggleProperty().addListener((observable, oldToggle, newToggle) -> {
+            if (newToggle == null && oldToggle != null) {
+                group.selectToggle(oldToggle);
+            } else if (newToggle != null) {
+                refresh.run();
+            }
+        });
     }
 
     private static Label createCell(String text, String id) {
@@ -122,15 +162,16 @@ public class Scoreboard {
         GridPane.setFillHeight(label, true);
     }
 
-    private static void configureDifficulty(
-            ToggleButton button, Difficulty difficulty, ToggleGroup group) {
+    private static void configureChoice(
+            ToggleButton button, Object value, ToggleGroup group) {
         button.setToggleGroup(group);
-        button.setUserData(difficulty);
+        button.setUserData(value);
         String normalStyle = button.getStyle();
         button.selectedProperty().addListener((observable, oldValue, selected) -> {
             button.setStyle(selected
                 ? normalStyle + ";" + SELECTED_STYLE
                 : normalStyle);
         });
+        ButtonEffects.addPressEffect(button);
     }
 }
