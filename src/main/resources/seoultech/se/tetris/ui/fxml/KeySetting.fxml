@@ -6,7 +6,7 @@
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
 
-<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="500.0" prefWidth="600.0" style="-fx-background-color: linear-gradient(to bottom, rgba(247,251,255,0.9) 0%, rgba(220,234,245,0.9) 55%, rgba(184,203,221,0.9) 100%); -fx-border-color: #173765; -fx-border-width: 8; -fx-border-radius: 12; -fx-background-radius: 15;" xmlns="http://javafx.com/javafx/26" xmlns:fx="http://javafx.com/fxml/1">
+<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="500.0" prefWidth="600.0" style="-fx-background-color: linear-gradient(to bottom, rgba(247,251,255,0.9) 0%, rgba(220,234,245,0.9) 55%, rgba(184,203,221,0.9) 100%); -fx-border-color: #173765; -fx-border-width: 8; -fx-border-radius: 12; -fx-background-radius: 15;" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1">
 
     <children>
 

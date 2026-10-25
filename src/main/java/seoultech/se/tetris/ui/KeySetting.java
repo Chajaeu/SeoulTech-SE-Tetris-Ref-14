@@ -84,6 +84,13 @@ public class KeySetting {
             }
         });
 
+        // 설정 화면과 같은 버튼 눌림 효과
+        root.lookupAll(".button").forEach(node -> {
+            if (node instanceof Button button) {
+                ButtonEffects.addPressEffect(button);
+            }
+        });
+
         return root;
     }
 

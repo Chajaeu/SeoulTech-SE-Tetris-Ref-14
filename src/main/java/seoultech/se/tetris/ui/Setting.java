@@ -3,6 +3,7 @@ package seoultech.se.tetris.ui;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonBase;
 import javafx.scene.control.ToggleButton;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.layout.Pane;
@@ -66,23 +67,23 @@ public class Setting {
                 "colorblindOFFButton"
             );
 
-        ToggleButton saveButton =
-            (ToggleButton) loader.getNamespace().get(
+        Button saveButton =
+            (Button) loader.getNamespace().get(
                 "saveButton"
             );
 
-        ToggleButton resetButton =
-            (ToggleButton) loader.getNamespace().get(
+        Button resetButton =
+            (Button) loader.getNamespace().get(
                 "resetButton"
             );
 
         // 해상도 선택
 
-        ToggleGroup resolutionGroup = new ToggleGroup();
-
-        smallResolutionButton.setToggleGroup(resolutionGroup);
-        mediumResolutionButton.setToggleGroup(resolutionGroup);
-        largeResolutionButton.setToggleGroup(resolutionGroup);
+        setupSelection(
+            smallResolutionButton,
+            mediumResolutionButton,
+            largeResolutionButton
+        );
 
 
         switch (currentResolution) {
@@ -102,26 +103,18 @@ public class Setting {
 
         // 색약 모드 ON / OFF
 
-        ToggleGroup colorblindGroup = new ToggleGroup();
-
-        colorblindOnButton.setToggleGroup(colorblindGroup);
-        colorblindOFFButton.setToggleGroup(colorblindGroup);
+        setupSelection(colorblindOnButton, colorblindOFFButton);
 
         // bd 연결전 기본값 추후 수정필요
         colorblindOFFButton.setSelected(true);
 
 
-        // 선택된 옵션 표시
-        setupSelectionStyle(
-            smallResolutionButton,
-            mediumResolutionButton,
-            largeResolutionButton
-        );
-
-        setupSelectionStyle(
-            colorblindOnButton,
-            colorblindOFFButton
-        );
+        // 메인 메뉴와 같은 버튼 눌림 효과
+        root.lookupAll("*").forEach(node -> {
+            if (node instanceof ButtonBase button) {
+                ButtonEffects.addPressEffect(button);
+            }
+        });
 
         //닫기
         closeButton.setOnAction(e -> close(root));
@@ -230,12 +223,14 @@ public class Setting {
 }
 
 
-    // 선택된 ToggleButton 표시
-    private static void setupSelectionStyle(
+    // 선택된 옵션 표시와 선택 유지
+    private static void setupSelection(
             ToggleButton... buttons) {
 
+        ToggleGroup group = new ToggleGroup();
         for (ToggleButton button : buttons) {
 
+            button.setToggleGroup(group);
             String normalStyle = button.getStyle();
 
             button.selectedProperty().addListener(
@@ -244,7 +239,7 @@ public class Setting {
                     if (selected) {
 
                         button.setStyle(
-                            normalStyle + SELECTED_STYLE
+                            normalStyle + ";" + SELECTED_STYLE
                         );
 
                     } else {
@@ -259,9 +254,16 @@ public class Setting {
             if (button.isSelected()) {
 
                 button.setStyle(
-                    normalStyle + SELECTED_STYLE
+                    normalStyle + ";" + SELECTED_STYLE
                 );
             }
         }
+
+        // 이미 선택된 버튼을 다시 눌러도 선택과 색상 유지
+        group.selectedToggleProperty().addListener((observable, oldToggle, newToggle) -> {
+            if (newToggle == null && oldToggle != null) {
+                group.selectToggle(oldToggle);
+            }
+        });
     }
 }
