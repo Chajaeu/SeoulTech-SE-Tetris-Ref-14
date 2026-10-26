@@ -199,6 +199,10 @@ public class Game {
         }
         return temp;
     }
+    // 고정-Mino 생성 사이에 tick 타이머 초기화 방지용
+    public boolean hasCurrentMino() {
+        return currentMino != null;
+    }
 
 
 

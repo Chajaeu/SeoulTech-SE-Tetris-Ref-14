@@ -277,11 +277,20 @@ public class PlayUI {
         gameActions.put(KeyCode.valueOf(settings.getKeyLeft()), game::moveLeft);
         gameActions.put(KeyCode.valueOf(settings.getKeyRight()), game::moveRight);
         gameActions.put(KeyCode.valueOf(settings.getKeyDown()), () -> {
+            if (!game.hasCurrentMino()) {
+                return;
+            }
             game.moveDown();
             restartFallTimer();
         });
         gameActions.put(KeyCode.valueOf(settings.getKeyRotate()), game::rotateCW);
-        gameActions.put(KeyCode.valueOf(settings.getKeyDrop()), game::harddrop);
+        gameActions.put(KeyCode.valueOf(settings.getKeyDrop()), () -> {
+            if (!game.hasCurrentMino()) {
+                return;
+            }
+            game.harddrop();
+            restartFallTimer();
+        });
         refreshScoreboard(null);
         return true;
     }
