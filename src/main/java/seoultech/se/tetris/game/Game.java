@@ -259,8 +259,9 @@ public class Game {
             dropScore();
         }
         currentMino.setContacted();
+        Mino droppingMino = currentMino;
         // 무게추일 시 계속 반복해서 바닥까지 가야함
-        while(currentMino != null) {
+        while (currentMino == droppingMino && !isGameover) {
             placeMino();
         }
     }
@@ -292,6 +293,7 @@ public class Game {
             }
 
             currentMino = null;
+            createNewMino();
             return;
         }
         if (currentMino.getItemType() == Mino.WEIGHT) {
@@ -306,6 +308,7 @@ public class Game {
             // 바닥에서는 무게추 블럭 제거
             else {
                 currentMino = null;
+                createNewMino();
             }
             return;
         }
@@ -397,6 +400,11 @@ public class Game {
                 }
             }
         }
+
+        if (!isWaitingDelete) {
+            deleteWaitingCells = null;
+            createNewMino();
+        }
         
     }
     // UI에서 애니메이션 이후 호출
@@ -445,6 +453,7 @@ public class Game {
 
         deleteWaitingCells = null;
         isWaitingDelete = false;
+        createNewMino();
     }
     
 
