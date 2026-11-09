@@ -171,6 +171,11 @@ public class Game {
         }
         return tempMino;
     }
+    public Cell[][] getAttackedLines() {
+        Cell[][] temp = attackedLines.getBoardCopy();
+        return temp;
+    }
+
     // 드랍 틱 간격(줄 삭제 시에만 한번씩 확인하면 됨)
     public int getTickInterval() {
         return tickInterval;
@@ -329,14 +334,27 @@ public class Game {
             return;
         }
 
-
+        Cell[][] temp = board.getBoardCopy();
         board.fixMino(currentMino);
         currentMino = null;
         
         // 삭제 필요 칸 탐색 함수
-        searchDeleteCells();
+        int[] fullLines = searchDeleteCells();
         // (-> 삭제 필요 칸 존재시 UI에 전달, isWaitingDelete = true;
         // -> UI에서 삭제 함수 실행, isWaitingDelete = false; )
+        if (battleMode){
+            if (fullLines.length >= 2) {
+                attackLines = new Board(fullLines.length, COLS);
+                for (int i = 0; i < fullLines.length; i++) {
+                    for(int c = 0; c < COLS; c++) {
+                        if (!temp[fullLines[i]][c].isEmpty()) {
+                            attackLines.setCell(i, c, new Cell(ATTACK_CELL));
+                        }
+                        else attackLines.setCell(i, c, new Cell());
+                    }
+                }
+            } 
+        }
     }
 
 
@@ -357,7 +375,7 @@ public class Game {
     }
 
     
-    private void searchDeleteCells() {
+    private int[] searchDeleteCells() {
         deleteWaitingCells = new boolean[ROWS][COLS];
         for (int r = 0; r < ROWS; r++) {
             for (int c = 0; c < COLS; c++) {
@@ -365,8 +383,11 @@ public class Game {
             }
         }
 
+        int fullLineCount = 0;
+        int[] tempFullLines = new int[10]; 
         for (int r = 0; r < ROWS; r++) {
             boolean fullLine = true;
+            
             for (int c = 0; c < COLS; c++) {
                 Cell cell = board.getCell(r, c);
 
@@ -411,6 +432,9 @@ public class Game {
 
             if (fullLine) {
                 isWaitingDelete = true;
+                tempFullLines[fullLineCount] = r;
+                fullLineCount++;
+
                 for (int c = 0; c < COLS; c++) {
                     deleteWaitingCells[r][c] = true;
                 }
@@ -421,8 +445,14 @@ public class Game {
             deleteWaitingCells = null;
             createNewMino();
         }
-        
+
+        int[] fullLines = new int[fullLineCount];
+        for (int i=0; i<fullLineCount; i++){
+            fullLines[i] = tempFullLines[i];
+        }
+        return fullLines;
     }
+
     // UI에서 애니메이션 이후 호출
     public void deleteCells() {
         if (deleteWaitingCells == null || isWaitingDelete == false) return;
@@ -472,6 +502,18 @@ public class Game {
         createNewMino();
     }
     
+
+    // 대전모드 공격/수신
+    public Board attack() {
+        if(attackLines == null) return new Board(0, COLS);
+        Board temp = attackLines;
+        attackLines = null;
+        return temp;
+    }
+    public void attacked(Board attack) {
+        
+    }
+
 
     // 삭제된 줄 수에 따른 레벨 기준(5 15 30 50 ...)
     private void updateLevel() {
