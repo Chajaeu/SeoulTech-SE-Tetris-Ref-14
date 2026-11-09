@@ -11,10 +11,14 @@ public class Game {
     public static final int EASY = 1;
     public static final int NORMAL = 2;
     public static final int HARD = 3;
+    // 공격 타입
+    public static final char ATTACK_CELL = 'A';
     // 내부 상수
     // tick 간격
     private static final int INITIAL_TICK_INTERVAL = 1000; //ms
     private static final int MIN_TICK_INTERVAL = 200;
+    // 공격 대기열 줄 수
+    private static final int MAX_ATTACK_LINES = 10;
 
 
     // 필드
@@ -39,16 +43,24 @@ public class Game {
 
     private int difficulty;
     private boolean itemMode;
+    private boolean battleMode;
 
     private boolean isPaused;
     private boolean isGameover;
     private boolean isWaitingDelete;
 
     private boolean[][] deleteWaitingCells;
-    
+    private Board attackLines;
+    private Board attackedLines;
+    private int attackedLinesCount;
+
 
 
     public Game(int difficulty, boolean itemMode) {
+        this(difficulty, itemMode, false);
+    }
+
+    public Game(int difficulty, boolean itemMode, boolean battleMode) {
         board = new Board(ROWS, COLS);
         random = new Random(); // seed 고정 가능
         score = 0;
@@ -56,12 +68,16 @@ public class Game {
         givenItemNumber = 0;
         this.difficulty = difficulty;
         this.itemMode = itemMode;
+        this.battleMode = battleMode;
         updateLevel();
         updateTickInterval();
         isPaused = false;
         isGameover = false;
         isWaitingDelete = false;
         deleteWaitingCells = null;
+        attackLines = null;
+        attackedLines = new Board(MAX_ATTACK_LINES, COLS);
+        attackedLinesCount = 0;
 
         subMino = null;
         nextMino = new Mino(selectMinoType());
