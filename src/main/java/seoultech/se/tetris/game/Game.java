@@ -511,7 +511,24 @@ public class Game {
         return temp;
     }
     public void attacked(Board attack) {
+        int attackRows = attack.getRows();
+        if (attackRows == 0) return;
         
+        for (int i=0; i<attackRows; i++){
+            if (attackedLinesCount >= MAX_ATTACK_LINES) break;
+
+            for (int j = MAX_ATTACK_LINES - attackedLinesCount; j < MAX_ATTACK_LINES; j++) {
+                for (int k=0; k<COLS; k++) {
+                    attackedLines.setCell(j-1, k, attackedLines.getCell(j, k));
+                }
+            }
+
+            for (int k=0; k<COLS; k++) {
+                attackedLines.setCell(MAX_ATTACK_LINES - 1, k, attack.getCell(i, k));
+            }
+            
+            attackedLinesCount++;
+        }
     }
 
 
