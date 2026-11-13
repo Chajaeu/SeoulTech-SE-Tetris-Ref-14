@@ -111,6 +111,8 @@ public class Game {
         return minoTypes[6];
     }
     private void createNewMino() {
+        if (isGameover) return;
+
         currentMino = nextMino;
         
         if (subMino != null) {
@@ -310,10 +312,12 @@ public class Game {
             }
             else {
                 Cell bottom = board.getCell(currentMino.getRow()+1, currentMino.getCol());
-                nextMino = new Mino(bottom.getType());
+                if (bottom.getType() == ATTACK_CELL) nextMino = new Mino(subMino.getType());
+                else nextMino = new Mino(bottom.getType());
             }
 
             currentMino = null;
+            applyAttack();
             createNewMino();
             return;
         }
@@ -329,6 +333,7 @@ public class Game {
             // 바닥에서는 무게추 블럭 제거
             else {
                 currentMino = null;
+                applyAttack();
                 createNewMino();
             }
             return;
@@ -443,6 +448,7 @@ public class Game {
 
         if (!isWaitingDelete) {
             deleteWaitingCells = null;
+            applyAttack();
             createNewMino();
         }
 
@@ -499,6 +505,7 @@ public class Game {
 
         deleteWaitingCells = null;
         isWaitingDelete = false;
+        applyAttack();
         createNewMino();
     }
     
@@ -528,6 +535,32 @@ public class Game {
             }
             
             attackedLinesCount++;
+        }
+    }
+
+    private void applyAttack() {
+        for (int r=0; r < attackedLinesCount; r++){
+            for (int c=0; c<COLS; c++){
+                if (!board.getCell(r, c).isEmpty()) {
+                    gameover();
+                    break;
+                }
+            }                
+        }
+
+        for (int r = attackedLinesCount; r < ROWS; r++) {
+            for(int c=0; c < COLS; c++) {
+                board.setCell(r - attackedLinesCount, c, board.getCell(r,c));
+            }
+        }
+        
+
+        while (attackedLinesCount > 0) {
+            for (int c=0; c < COLS; c++) {
+                board.setCell(ROWS - attackedLinesCount, c, attackedLines.getCell(MAX_ATTACK_LINES - attackedLinesCount, c));
+                attackedLines.setCell(MAX_ATTACK_LINES - attackedLinesCount, c, new Cell());
+            }
+            attackedLinesCount--;
         }
     }
 
