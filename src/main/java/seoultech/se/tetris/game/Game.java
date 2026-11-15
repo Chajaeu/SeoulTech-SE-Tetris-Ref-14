@@ -511,14 +511,21 @@ public class Game {
     
 
     // 대전모드 공격/수신
-    public Board attack() {
-        if(attackLines == null) return new Board(0, COLS);
-        Board temp = attackLines;
+    public boolean[][] attack() {
+        if(attackLines == null) return new boolean[0][COLS];
+        Cell[][] temp = attackLines.getBoardCopy();
         attackLines = null;
-        return temp;
+
+        boolean[][] returnResult = new boolean[temp.length][COLS];
+        for (int r=0; r < temp.length; r++){
+            for (int c=0; c < COLS; c++) {
+                returnResult[r][c] = !temp[r][c].isEmpty();
+            }
+        }
+        return returnResult;
     }
-    public void attacked(Board attack) {
-        int attackRows = attack.getRows();
+    public void attacked(boolean[][] attack) {
+        int attackRows = attack.length;
         if (attackRows == 0) return;
         
         for (int i=0; i<attackRows; i++){
@@ -530,8 +537,9 @@ public class Game {
                 }
             }
 
-            for (int k=0; k<COLS; k++) {
-                attackedLines.setCell(MAX_ATTACK_LINES - 1, k, attack.getCell(i, k));
+            for (int c=0; c < COLS; c++) {
+                if (attack[i][c]) attackedLines.setCell(MAX_ATTACK_LINES - 1, c, new Cell(ATTACK_CELL));
+                else attackedLines.setCell(MAX_ATTACK_LINES - 1, c, new Cell());
             }
             
             attackedLinesCount++;
