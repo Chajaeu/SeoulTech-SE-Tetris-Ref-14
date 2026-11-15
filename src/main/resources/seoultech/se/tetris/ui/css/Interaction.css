@@ -1,6 +1,5 @@
 .interactive-button:input-highlight {
     -fx-border-color: #E6007E !important;
-    -fx-border-width: 2px !important;
 }
 
 .record-cell:new-record {
