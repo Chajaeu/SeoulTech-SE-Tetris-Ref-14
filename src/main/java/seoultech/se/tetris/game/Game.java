@@ -11,10 +11,14 @@ public class Game {
     public static final int EASY = 1;
     public static final int NORMAL = 2;
     public static final int HARD = 3;
+    // 공격 타입
+    public static final char ATTACK_CELL = 'A';
     // 내부 상수
     // tick 간격
     private static final int INITIAL_TICK_INTERVAL = 1000; //ms
     private static final int MIN_TICK_INTERVAL = 200;
+    // 공격 대기열 줄 수
+    private static final int MAX_ATTACK_LINES = 10;
 
 
     // 필드
@@ -39,16 +43,24 @@ public class Game {
 
     private int difficulty;
     private boolean itemMode;
+    private boolean battleMode;
 
     private boolean isPaused;
     private boolean isGameover;
     private boolean isWaitingDelete;
 
     private boolean[][] deleteWaitingCells;
-    
+    private Board attackLines;
+    private Board attackedLines;
+    private int attackedLinesCount;
+
 
 
     public Game(int difficulty, boolean itemMode) {
+        this(difficulty, itemMode, false);
+    }
+
+    public Game(int difficulty, boolean itemMode, boolean battleMode) {
         board = new Board(ROWS, COLS);
         random = new Random(); // seed 고정 가능
         score = 0;
@@ -56,12 +68,16 @@ public class Game {
         givenItemNumber = 0;
         this.difficulty = difficulty;
         this.itemMode = itemMode;
+        this.battleMode = battleMode;
         updateLevel();
         updateTickInterval();
         isPaused = false;
         isGameover = false;
         isWaitingDelete = false;
         deleteWaitingCells = null;
+        attackLines = null;
+        attackedLines = new Board(MAX_ATTACK_LINES, COLS);
+        attackedLinesCount = 0;
 
         subMino = null;
         nextMino = new Mino(selectMinoType());
@@ -95,6 +111,8 @@ public class Game {
         return minoTypes[6];
     }
     private void createNewMino() {
+        if (isGameover) return;
+
         currentMino = nextMino;
         
         if (subMino != null) {
@@ -155,6 +173,11 @@ public class Game {
         }
         return tempMino;
     }
+    public Cell[][] getAttackedLines() {
+        Cell[][] temp = attackedLines.getBoardCopy();
+        return temp;
+    }
+
     // 드랍 틱 간격(줄 삭제 시에만 한번씩 확인하면 됨)
     public int getTickInterval() {
         return tickInterval;
@@ -259,8 +282,9 @@ public class Game {
             dropScore();
         }
         currentMino.setContacted();
+        Mino droppingMino = currentMino;
         // 무게추일 시 계속 반복해서 바닥까지 가야함
-        while(currentMino != null) {
+        while (currentMino == droppingMino && !isGameover) {
             placeMino();
         }
     }
@@ -288,10 +312,13 @@ public class Game {
             }
             else {
                 Cell bottom = board.getCell(currentMino.getRow()+1, currentMino.getCol());
-                nextMino = new Mino(bottom.getType());
+                if (bottom.getType() == ATTACK_CELL) nextMino = new Mino(subMino.getType());
+                else nextMino = new Mino(bottom.getType());
             }
 
             currentMino = null;
+            applyAttack();
+            createNewMino();
             return;
         }
         if (currentMino.getItemType() == Mino.WEIGHT) {
@@ -306,18 +333,33 @@ public class Game {
             // 바닥에서는 무게추 블럭 제거
             else {
                 currentMino = null;
+                applyAttack();
+                createNewMino();
             }
             return;
         }
 
-
+        Cell[][] temp = board.getBoardCopy();
         board.fixMino(currentMino);
         currentMino = null;
         
         // 삭제 필요 칸 탐색 함수
-        searchDeleteCells();
+        int[] fullLines = searchDeleteCells();
         // (-> 삭제 필요 칸 존재시 UI에 전달, isWaitingDelete = true;
         // -> UI에서 삭제 함수 실행, isWaitingDelete = false; )
+        if (battleMode){
+            if (fullLines.length >= 2) {
+                attackLines = new Board(fullLines.length, COLS);
+                for (int i = 0; i < fullLines.length; i++) {
+                    for(int c = 0; c < COLS; c++) {
+                        if (!temp[fullLines[i]][c].isEmpty()) {
+                            attackLines.setCell(i, c, new Cell(ATTACK_CELL));
+                        }
+                        else attackLines.setCell(i, c, new Cell());
+                    }
+                }
+            } 
+        }
     }
 
 
@@ -338,7 +380,7 @@ public class Game {
     }
 
     
-    private void searchDeleteCells() {
+    private int[] searchDeleteCells() {
         deleteWaitingCells = new boolean[ROWS][COLS];
         for (int r = 0; r < ROWS; r++) {
             for (int c = 0; c < COLS; c++) {
@@ -346,8 +388,11 @@ public class Game {
             }
         }
 
+        int fullLineCount = 0;
+        int[] tempFullLines = new int[10]; 
         for (int r = 0; r < ROWS; r++) {
             boolean fullLine = true;
+            
             for (int c = 0; c < COLS; c++) {
                 Cell cell = board.getCell(r, c);
 
@@ -392,13 +437,28 @@ public class Game {
 
             if (fullLine) {
                 isWaitingDelete = true;
+                tempFullLines[fullLineCount] = r;
+                fullLineCount++;
+
                 for (int c = 0; c < COLS; c++) {
                     deleteWaitingCells[r][c] = true;
                 }
             }
         }
-        
+
+        if (!isWaitingDelete) {
+            deleteWaitingCells = null;
+            applyAttack();
+            createNewMino();
+        }
+
+        int[] fullLines = new int[fullLineCount];
+        for (int i=0; i<fullLineCount; i++){
+            fullLines[i] = tempFullLines[i];
+        }
+        return fullLines;
     }
+
     // UI에서 애니메이션 이후 호출
     public void deleteCells() {
         if (deleteWaitingCells == null || isWaitingDelete == false) return;
@@ -445,8 +505,65 @@ public class Game {
 
         deleteWaitingCells = null;
         isWaitingDelete = false;
+        applyAttack();
+        createNewMino();
     }
     
+
+    // 대전모드 공격/수신
+    public Board attack() {
+        if(attackLines == null) return new Board(0, COLS);
+        Board temp = attackLines;
+        attackLines = null;
+        return temp;
+    }
+    public void attacked(Board attack) {
+        int attackRows = attack.getRows();
+        if (attackRows == 0) return;
+        
+        for (int i=0; i<attackRows; i++){
+            if (attackedLinesCount >= MAX_ATTACK_LINES) break;
+
+            for (int j = MAX_ATTACK_LINES - attackedLinesCount; j < MAX_ATTACK_LINES; j++) {
+                for (int k=0; k<COLS; k++) {
+                    attackedLines.setCell(j-1, k, attackedLines.getCell(j, k));
+                }
+            }
+
+            for (int k=0; k<COLS; k++) {
+                attackedLines.setCell(MAX_ATTACK_LINES - 1, k, attack.getCell(i, k));
+            }
+            
+            attackedLinesCount++;
+        }
+    }
+
+    private void applyAttack() {
+        for (int r=0; r < attackedLinesCount; r++){
+            for (int c=0; c<COLS; c++){
+                if (!board.getCell(r, c).isEmpty()) {
+                    gameover();
+                    break;
+                }
+            }                
+        }
+
+        for (int r = attackedLinesCount; r < ROWS; r++) {
+            for(int c=0; c < COLS; c++) {
+                board.setCell(r - attackedLinesCount, c, board.getCell(r,c));
+            }
+        }
+        
+
+        while (attackedLinesCount > 0) {
+            for (int c=0; c < COLS; c++) {
+                board.setCell(ROWS - attackedLinesCount, c, attackedLines.getCell(MAX_ATTACK_LINES - attackedLinesCount, c));
+                attackedLines.setCell(MAX_ATTACK_LINES - attackedLinesCount, c, new Cell());
+            }
+            attackedLinesCount--;
+        }
+    }
+
 
     // 삭제된 줄 수에 따른 레벨 기준(5 15 30 50 ...)
     private void updateLevel() {
