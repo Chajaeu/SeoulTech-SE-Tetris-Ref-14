@@ -118,3 +118,9 @@ service.close();
 - 프로젝트에서 `./gradlew test jacocoTestReport`로 전체 JUnit/JaCoCo 실행.
 - Gradle 실행이 어려운 환경에서도 `bash scripts/test-p2p-standalone.sh`로 Java21 TCP 흐름 검증.
 - 두 PC에서 `bash scripts/run-p2p-console.sh host 7777`, `bash scripts/run-p2p-console.sh join <호스트IP> 7777` 실행 가능. 단, 방화벽에서 포트 7777 허용 필요. 두 PC 콘솔에서 `mode NORMAL`, `ready`, `state`, `attack`, `finish`, `status` 명령으로 메시지 확인.
+
+## 후속 구현 v2 (2026-11-21)
+
+`P2PStatePublisher`를 사용하면 Core 측에서 `AtomicReference<GameStateSnapshot>`을 제공하는 것만으로 변경된 보드 상태를 주기적으로 송신할 수 있다. 25Hz(40ms)는 초기값이며 LAN 200ms 표시 지연을 보장하는 성능 측정치가 아니다. 느린 연결에서는 송신 큐가 오래된 `GAME_STATE`를 제거해 최신 스냅샷을 우선한다. `ATTACK` 같은 이벤트는 `GAME_STATE`와 달리 임의로 버리지 않지만, 제어 메시지만으로 큐가 포화되면 전송 시도는 `false`가 될 수 있으므로 Core가 실패를 처리해야 한다.
+
+`NetworkListener`의 새 기본 콜백 `onMatchStarted(mode, durationSeconds)` / `onMatchFinished(result)`는 기존 메시지 종류나 `MessageCodec.VERSION`을 변경하지 않고 UI 연동 지점을 추가한 것이다. 자세한 내용은 [`infra-req3-followup.md`](infra-req3-followup.md)를 참고.

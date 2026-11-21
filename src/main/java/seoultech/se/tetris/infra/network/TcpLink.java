@@ -49,7 +49,22 @@ final class TcpLink implements AutoCloseable {
     }
 
     boolean send(NetworkMessage message) {
-        return active.get() && queue.offer(Objects.requireNonNull(message));
+        Objects.requireNonNull(message);
+        if (!active.get()) return false;
+        synchronized (queue) {
+            if (!active.get()) return false;
+            if (message.type() == MessageType.GAME_STATE) {
+                // 원격 보드는 가장 최신 스냅샷만 필요. 느린 회선에서 오래된 프레임 적체 방지.
+                queue.removeIf(pending -> pending.type() == MessageType.GAME_STATE);
+                return queue.offer(message);
+            }
+            if (queue.offer(message)) return true;
+            // 제어/공격/종료 메시지는 대기 중인 오래된 GAME_STATE보다 우선.
+            if (queue.removeIf(pending -> pending.type() == MessageType.GAME_STATE)) {
+                return queue.offer(message);
+            }
+            return false; // 제어 메시지로만 큐가 포화되면 호출자에게 실패를 알린다.
+        }
     }
 
     boolean isOpen() { return active.get(); }

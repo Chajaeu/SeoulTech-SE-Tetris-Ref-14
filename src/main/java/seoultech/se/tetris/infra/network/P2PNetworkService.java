@@ -47,6 +47,8 @@ public final class P2PNetworkService implements AutoCloseable {
     private long lastPingNanos;
     private volatile long lastRttMillis = -1;
     private volatile boolean closed;
+    /** 이전 소켓의 지연 콜백이 재접속 세션을 종료하지 못하도록 구분한다. */
+    private long sessionId;
 
     public P2PNetworkService(NetworkListener listener) {
         this(listener, new RecentIpRepository());
@@ -66,10 +68,12 @@ public final class P2PNetworkService implements AutoCloseable {
         P2PServer candidate;
         synchronized (lock) {
             ensureAvailable();
+            // 먼저 포트를 확보한다. 바인딩 실패 시 서비스는 DISCONNECTED로 남아 재시도할 수 있다.
+            candidate = new P2PServer(port, new ServerEvents(sessionId + 1));
+            sessionId++;
+            server = candidate;
             role = PeerRole.HOST;
             phase = LobbyPhase.CONNECTING;
-            candidate = new P2PServer(port, new ServerEvents());
-            server = candidate;
         }
         candidate.start();
         publishLobby();
@@ -84,7 +88,8 @@ public final class P2PNetworkService implements AutoCloseable {
             ensureAvailable();
             role = PeerRole.CLIENT;
             phase = LobbyPhase.CONNECTING;
-            client = new P2PClient(new ClientEvents());
+            sessionId++;
+            client = new P2PClient(new ClientEvents(sessionId));
         }
         publishLobby();
         return CompletableFuture.runAsync(() -> {
@@ -173,6 +178,7 @@ public final class P2PNetworkService implements AutoCloseable {
     /** Core가 판정한 최종 결과를 양쪽에 전달하고 다음 경기 대기 상태로 되돌린다. */
     public void finishMatch(String result) {
         Objects.requireNonNull(result);
+        if (result.isBlank() || result.length() > 100) throw new IllegalArgumentException("Invalid match result");
         synchronized (lock) {
             if (phase != LobbyPhase.PLAYING) throw new IllegalStateException("No running match");
             phase = LobbyPhase.WAITING;
@@ -181,15 +187,21 @@ public final class P2PNetworkService implements AutoCloseable {
         }
         send(MessageType.GAME_OVER, result);
         publishLobby();
+        listener.onMatchFinished(result);
     }
 
     /** P2P 화면에서 뒤로 가기, 타임아웃, 통신 오류 발생 시 초기화한다. */
-    public void stop() {
+    public void stop() { stopSession(-1); }
+
+    /** expectedId가 일치할 때만 종료: 이전 연결의 늦은 콜백은 무시한다. */
+    private boolean stopSession(long expectedId) {
         P2PServer oldServer;
         P2PClient oldClient;
         boolean notify;
         synchronized (lock) {
+            if (expectedId >= 0 && expectedId != sessionId) return false;
             notify = phase != LobbyPhase.DISCONNECTED;
+            sessionId++; // socket.close()가 호출할 콜백을 먼저 무효화한다.
             phase = LobbyPhase.DISCONNECTED;
             oldServer = server;
             oldClient = client;
@@ -207,6 +219,7 @@ public final class P2PNetworkService implements AutoCloseable {
         if (oldServer != null) oldServer.close();
         if (oldClient != null) oldClient.close();
         if (notify) publishLobby();
+        return notify;
     }
 
     private boolean send(MessageType type, String payload) {
@@ -219,9 +232,9 @@ public final class P2PNetworkService implements AutoCloseable {
         }
     }
 
-    private void onConnected() {
+    private void onConnected(long sourceId) {
         synchronized (lock) {
-            if (phase != LobbyPhase.CONNECTING) return;
+            if (sessionId != sourceId || phase != LobbyPhase.CONNECTING) return;
             phase = LobbyPhase.WAITING;
             localReady = false;
             remoteReady = false;
@@ -237,9 +250,9 @@ public final class P2PNetworkService implements AutoCloseable {
         publishLobby();
     }
 
-    private void onMessage(NetworkMessage message) {
+    private void onMessage(long sourceId, NetworkMessage message) {
         synchronized (lock) {
-            if (phase == LobbyPhase.DISCONNECTED || message.sequence() <= lastReceivedSeq) return;
+            if (sessionId != sourceId || phase == LobbyPhase.DISCONNECTED || message.sequence() <= lastReceivedSeq) return;
             lastReceivedSeq = message.sequence();
             if (lagging) lagging = false;
         }
@@ -278,12 +291,18 @@ public final class P2PNetworkService implements AutoCloseable {
                     maybeStart();
                 }
                 case START -> {
+                    boolean started = false;
                     synchronized (lock) {
                         if (role == PeerRole.CLIENT && phase == LobbyPhase.WAITING && localReady && mode != null) {
                             phase = LobbyPhase.PLAYING;
+                            started = true;
                         }
                     }
-                    publishLobby();
+                    if (started) {
+                        publishLobby();
+                        LobbyState current = getLobbyState();
+                        listener.onMatchStarted(current.mode(), current.durationSeconds());
+                    }
                 }
                 case GAME_STATE -> {
                     if (getLobbyState().phase() == LobbyPhase.PLAYING) {
@@ -296,14 +315,22 @@ public final class P2PNetworkService implements AutoCloseable {
                     }
                 }
                 case GAME_OVER -> {
+                    if (message.payload().isBlank() || message.payload().length() > 100) {
+                        throw new IOException("Invalid match result");
+                    }
+                    boolean finished = false;
                     synchronized (lock) {
                         if (phase == LobbyPhase.PLAYING) {
                             phase = LobbyPhase.WAITING;
                             localReady = false;
                             remoteReady = false;
+                            finished = true;
                         }
                     }
-                    publishLobby();
+                    if (finished) {
+                        publishLobby();
+                        listener.onMatchFinished(message.payload());
+                    }
                 }
                 case REMATCH -> { /* 새 경기 시에는 양쪽 모두 setReady(true) 호출 */ }
                 case PING -> send(MessageType.PONG, message.payload());
@@ -317,14 +344,17 @@ public final class P2PNetworkService implements AutoCloseable {
                         publishLobby();
                     } catch (NumberFormatException ignored) { }
                 }
-                case DISCONNECT -> { stop(); listener.onDisconnected("상대방이 연결을 종료했습니다."); }
+                case DISCONNECT -> {
+                    if (stopSession(sourceId)) listener.onDisconnected("상대방이 연결을 종료했습니다.");
+                }
                 case ERROR -> reportError(message.payload(), null);
             }
             listener.onMessage(message);
         } catch (IOException | IllegalArgumentException e) {
-            reportError("P2P 메시지 오류", e);
-            stop();
-            listener.onDisconnected("P2P 메시지 검증에 실패했습니다.");
+            if (stopSession(sourceId)) {
+                reportError("P2P 메시지 오류", e);
+                listener.onDisconnected("P2P 메시지 검증에 실패했습니다.");
+            }
         }
     }
 
@@ -338,6 +368,8 @@ public final class P2PNetworkService implements AutoCloseable {
         if (start) {
             send(MessageType.START, "");
             publishLobby();
+            LobbyState current = getLobbyState();
+            listener.onMatchStarted(current.mode(), current.durationSeconds());
         }
     }
 
@@ -345,13 +377,17 @@ public final class P2PNetworkService implements AutoCloseable {
         try {
             if (closed || !isConnected()) return;
             long idle;
+            long observedSessionId;
             synchronized (lock) {
+                observedSessionId = sessionId;
+                if (!currentConnected()) return;
                 idle = role == PeerRole.HOST ? server.millisSinceIncoming() : client.millisSinceIncoming();
             }
             if (idle >= DISCONNECT_THRESHOLD_MS) {
-                reportError("상대방 응답이 없어 연결을 종료합니다.", null);
-                stop();
-                listener.onDisconnected("네트워크 연결 시간 초과");
+                if (stopSession(observedSessionId)) {
+                    reportError("상대방 응답이 없어 연결을 종료합니다.", null);
+                    listener.onDisconnected("네트워크 연결 시간 초과");
+                }
                 return;
             }
             boolean changed;
@@ -368,12 +404,9 @@ public final class P2PNetworkService implements AutoCloseable {
         } catch (RuntimeException e) { reportError("네트워크 상태 점검 오류", e); }
     }
 
-    private void onDisconnected(String reason, Throwable cause) {
-        boolean notify;
-        synchronized (lock) { notify = phase != LobbyPhase.DISCONNECTED; }
-        if (!notify) return;
+    private void onDisconnected(long sourceId, String reason, Throwable cause) {
+        if (!stopSession(sourceId)) return;
         if (cause != null) reportError(reason, cause);
-        stop();
         listener.onDisconnected(reason);
     }
 
@@ -397,13 +430,17 @@ public final class P2PNetworkService implements AutoCloseable {
     }
 
     private final class ServerEvents implements P2PServer.Events {
-        public void onConnected() { P2PNetworkService.this.onConnected(); }
-        public void onMessage(NetworkMessage m) { P2PNetworkService.this.onMessage(m); }
-        public void onDisconnected(String reason, Throwable error) { P2PNetworkService.this.onDisconnected(reason, error); }
+        private final long id;
+        ServerEvents(long id) { this.id = id; }
+        public void onConnected() { P2PNetworkService.this.onConnected(id); }
+        public void onMessage(NetworkMessage m) { P2PNetworkService.this.onMessage(id, m); }
+        public void onDisconnected(String reason, Throwable error) { P2PNetworkService.this.onDisconnected(id, reason, error); }
     }
     private final class ClientEvents implements P2PClient.Events {
-        public void onConnected() { P2PNetworkService.this.onConnected(); }
-        public void onMessage(NetworkMessage m) { P2PNetworkService.this.onMessage(m); }
-        public void onDisconnected(String reason, Throwable error) { P2PNetworkService.this.onDisconnected(reason, error); }
+        private final long id;
+        ClientEvents(long id) { this.id = id; }
+        public void onConnected() { P2PNetworkService.this.onConnected(id); }
+        public void onMessage(NetworkMessage m) { P2PNetworkService.this.onMessage(id, m); }
+        public void onDisconnected(String reason, Throwable error) { P2PNetworkService.this.onDisconnected(id, reason, error); }
     }
 }
