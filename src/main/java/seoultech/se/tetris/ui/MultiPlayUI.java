@@ -20,7 +20,6 @@ import javafx.scene.shape.Rectangle;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 
-import seoultech.se.tetris.game.Board;
 import seoultech.se.tetris.game.Cell;
 import seoultech.se.tetris.game.Game;
 import seoultech.se.tetris.infra.persistence.SettingsRepository;
@@ -183,8 +182,8 @@ public final class MultiPlayUI extends PlayUI {
         if (battleGame.getIsGameover()) {
             return;
         }
-        Board attack = battleGame.attack();
-        if (attack.getRows() > 0) {
+        boolean[][] attack = battleGame.attack();
+        if (attack.length > 0) {
             opponent.battleGame.attacked(attack);
             opponent.refreshAttackStatus();
         }
