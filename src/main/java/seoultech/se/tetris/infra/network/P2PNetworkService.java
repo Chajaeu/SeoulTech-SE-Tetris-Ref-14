@@ -242,7 +242,7 @@ public final class P2PNetworkService implements AutoCloseable {
             lastReceivedSeq = -1;
             outboundSeq.set(0);
         }
-        send(MessageType.HELLO, "1");
+        send(MessageType.HELLO, Integer.toString(MessageCodec.VERSION));
         if (getLobbyState().role() == PeerRole.HOST && getLobbyState().mode() != null) {
             send(MessageType.MODE_SELECT, getLobbyState().mode().name() + "|" + getLobbyState().durationSeconds());
         }
@@ -259,7 +259,8 @@ public final class P2PNetworkService implements AutoCloseable {
         try {
             switch (message.type()) {
                 case HELLO -> {
-                    if (!"1".equals(message.payload())) throw new IOException("Protocol version mismatch");
+                    if (!Integer.toString(MessageCodec.VERSION).equals(message.payload()))
+                        throw new IOException("Protocol version mismatch");
                 }
                 case MODE_SELECT -> {
                     String[] config = message.payload().split("\\|", -1);

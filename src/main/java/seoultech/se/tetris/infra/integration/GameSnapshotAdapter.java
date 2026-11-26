@@ -1,6 +1,6 @@
 package seoultech.se.tetris.infra.integration;
 
-import seoultech.se.tetris.infra.network.*;
+import seoultech.se.tetris.infra.network.GameStateSnapshot;
 
 import seoultech.se.tetris.game.Cell;
 import seoultech.se.tetris.game.Game;
@@ -11,27 +11,60 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * 기존 Game/Cell의 화면 정보를 P2P 읽기 전용 DTO로 복사한다.
- * Game은 mutable이므로 {@link #capture(Game)}는 반드시 Game을 조작하는 스레드에서 호출한다.
- * 네트워크 스레드에서는 이 불변 결과만 읽어야 한다.
- *
- * wire code: '.' 비어 있음, I/J/L/O/S/T/Z 일반 블록, l/w/c/b/r 아이템,
- * '#' 회색 공격 블록(전송용 예약 코드). 상대 UI의 색상 매핑은 별도 연동 필요.
+ * Converts Core's live Game into an immutable transport state. Must be called
+ * from the game-update thread, never a TCP receiver or scheduled publisher thread.
+ * '.' empty; I/J/L/O/S/T/Z regular; lowercase l/w/c/b/r item; '#' gray ATTACK_CELL.
  */
 public final class GameSnapshotAdapter {
     private GameSnapshotAdapter() {}
 
     public static GameStateSnapshot capture(Game game) {
         Objects.requireNonNull(game, "game");
-        return capture(game.getDisplayBoard(), game.getNextMino(),
-                game.getScore(), game.getLines(), game.getLevel(), game.getIsGameover());
+        return new GameStateSnapshot(encodeRows(game.getDisplayBoard(), Game.ROWS, Game.COLS),
+                encodeRows(game.getNextMino(), -1, -1),
+                game.getScore(), game.getLines(), game.getLevel(), game.getIsGameover(),
+                encodeAttackDisplay(game.getAttackedLines()), game.getIsPaused(),
+                game.getIsWaitingDelete(), encodeDeletionMask(game.getDeleteWaitingCells()));
     }
 
-    /** Core의 차후 API 변경 시 이 메서드만 사용하면 Game 직접 의존을 피할 수 있다. */
+    /** Kept for existing callers that provide only the original six state fields. */
     public static GameStateSnapshot capture(Cell[][] display, Cell[][] preview,
                                              int score, int lines, int level, boolean gameOver) {
-        return new GameStateSnapshot(encodeRows(display, 20, 10),
+        return new GameStateSnapshot(encodeRows(display, Game.ROWS, Game.COLS),
                 encodeRows(preview, -1, -1), score, lines, level, gameOver);
+    }
+
+    private static List<String> encodeAttackDisplay(Cell[][] cells) {
+        Objects.requireNonNull(cells, "attackedLines");
+        if (cells.length != 10) throw new IllegalArgumentException("Attack display must have 10 rows");
+        List<String> rows = new ArrayList<>(10);
+        for (Cell[] cellsRow : cells) {
+            if (cellsRow == null || cellsRow.length != Game.COLS)
+                throw new IllegalArgumentException("Invalid attack display width");
+            StringBuilder row = new StringBuilder(Game.COLS);
+            for (Cell cell : cellsRow) {
+                if (cell == null) throw new IllegalArgumentException("Null attack display cell");
+                if (cell.isEmpty()) row.append('.');
+                else if (cell.getType() == Game.ATTACK_CELL) row.append('#');
+                else throw new IllegalArgumentException("Unexpected attack display cell");
+            }
+            rows.add(row.toString());
+        }
+        return rows;
+    }
+
+    private static List<String> encodeDeletionMask(boolean[][] mask) {
+        if (mask == null) return List.of();
+        if (mask.length != Game.ROWS) throw new IllegalArgumentException("Delete mask height");
+        List<String> rows = new ArrayList<>(Game.ROWS);
+        for (boolean[] line : mask) {
+            if (line == null || line.length != Game.COLS)
+                throw new IllegalArgumentException("Delete mask width");
+            StringBuilder row = new StringBuilder(Game.COLS);
+            for (boolean flag : line) row.append(flag ? '#' : '.');
+            rows.add(row.toString());
+        }
+        return rows;
     }
 
     private static List<String> encodeRows(Cell[][] cells, int height, int width) {
@@ -65,22 +98,42 @@ public final class GameSnapshotAdapter {
                 default -> throw new IllegalArgumentException("Unknown item cell type: " + type);
             };
         }
-        if (type == 'G' || type == '#') return '#';
+        if (type == Game.ATTACK_CELL) return '#';
+        if (type == 'G' || type == '#') return 'g'; // legacy mock gray cell, not Core's 'A'
         if ("IJLOSTZ".indexOf(type) >= 0) return type;
         throw new IllegalArgumentException("Unknown normal cell type: " + type);
     }
 
-    /** 네트워크 스냅샷을 UI 렌더러에서 사용할 Cell 데이터로 복원. 기존 Game은 변경하지 않는다. */
     public static Cell[][] decodeBoard(GameStateSnapshot snapshot) {
         Objects.requireNonNull(snapshot, "snapshot");
         return decodeRows(snapshot.board());
     }
-
     public static Cell[][] decodeNext(GameStateSnapshot snapshot) {
         Objects.requireNonNull(snapshot, "snapshot");
         return decodeRows(snapshot.next());
     }
+    public static Cell[][] decodePendingAttacks(GameStateSnapshot snapshot) {
+        Objects.requireNonNull(snapshot, "snapshot");
+        if (snapshot.pendingAttacks().isEmpty()) return emptyCells(10, Game.COLS);
+        return decodeRows(snapshot.pendingAttacks());
+    }
+    public static boolean[][] decodeDeleteWaitingCells(GameStateSnapshot snapshot) {
+        Objects.requireNonNull(snapshot, "snapshot");
+        if (!snapshot.waitingDelete()) return null;
+        boolean[][] mask = new boolean[Game.ROWS][Game.COLS];
+        for (int r = 0; r < Game.ROWS; r++) {
+            for (int c = 0; c < Game.COLS; c++)
+                mask[r][c] = snapshot.deleteWaitingCells().get(r).charAt(c) == '#';
+        }
+        return mask;
+    }
 
+    private static Cell[][] emptyCells(int height, int width) {
+        Cell[][] result = new Cell[height][width];
+        for (int r = 0; r < height; r++)
+            for (int c = 0; c < width; c++) result[r][c] = new Cell();
+        return result;
+    }
     private static Cell[][] decodeRows(List<String> rows) {
         Cell[][] result = new Cell[rows.size()][];
         for (int r = 0; r < rows.size(); r++) {
@@ -90,11 +143,11 @@ public final class GameSnapshotAdapter {
         }
         return result;
     }
-
     public static Cell decodeCell(char code) {
         return switch (code) {
             case '.' -> new Cell();
-            case '#' -> new Cell('G', false, 'G');
+            case '#' -> new Cell(Game.ATTACK_CELL);
+            case 'g' -> new Cell('G', false, 'G');
             case 'l' -> new Cell('L', true, Mino.LINE_CLEAR);
             case 'w' -> new Cell('W', true, Mino.WEIGHT);
             case 'c' -> new Cell('C', true, Mino.COLUMN_CLEAR);

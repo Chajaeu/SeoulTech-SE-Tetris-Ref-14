@@ -41,7 +41,7 @@ class GameSnapshotAdapterTest {
         board[0][0] = new Cell('L');            // 일반 L
         board[0][1] = new Cell('L', true, 'L'); // 줄 삭제 아이템 L
         board[0][2] = new Cell('B', true, 'B'); // 폭탄
-        board[0][3] = new Cell('G', false, 'G'); // 회색 공격 줄 전송용 예약 타입
+        board[0][3] = new Cell(Game.ATTACK_CELL); // 실제 Core 공격 타입 A
         next[1][0] = new Cell('I');
         GameStateSnapshot state = GameSnapshotAdapter.capture(board, next, 123, 4, 2, false);
         assertEquals("Llb#......", state.board().get(0));
@@ -53,7 +53,7 @@ class GameSnapshotAdapterTest {
         assertTrue(restored[0][1].isItem());
         assertEquals('L', restored[0][1].getType());
         assertEquals('B', restored[0][2].getType());
-        assertEquals('G', restored[0][3].getType());
+        assertEquals(Game.ATTACK_CELL, restored[0][3].getType());
         assertTrue(restored[0][4].isEmpty());
     }
 

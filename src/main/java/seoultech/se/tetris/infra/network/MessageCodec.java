@@ -10,7 +10,7 @@ import java.nio.charset.StandardCharsets;
 
 /** TCP용 길이 프레이밍. Java 객체 역직렬화는 사용하지 않는다. */
 public final class MessageCodec {
-    public static final int VERSION = 1;
+    public static final int VERSION = 2; // v2: extended GAME_STATE and Core ATTACK_CELL support
     public static final int MAX_FRAME_BYTES = 512 * 1024;
 
     private MessageCodec() {}

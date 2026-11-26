@@ -7,6 +7,7 @@ trap 'rm -rf "$OUTPUT"' EXIT
 javac -encoding UTF-8 -d "$OUTPUT" \
   $(find src/main/java/seoultech/se/tetris/game -maxdepth 1 -name '*.java' | sort) \
   $(find src/main/java/seoultech/se/tetris/infra/network -maxdepth 1 -name '*.java' | sort) \
+  src/main/java/seoultech/se/tetris/infra/integration/CoreAttackAdapter.java \
   src/main/java/seoultech/se/tetris/infra/integration/GameSnapshotAdapter.java \
   src/main/java/seoultech/se/tetris/infra/integration/P2PGameBridge.java \
   src/main/java/seoultech/se/tetris/infra/persistence/RecentIpRepository.java \

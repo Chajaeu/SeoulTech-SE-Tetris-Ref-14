@@ -1,6 +1,6 @@
-# Team14 / Req3 P2P 통신 명세 (Infra 초안 v1)
+# Team14 / Req3 P2P 통신 명세 (Infra Core 연동 v4)
 
-기준: 2026-11-07 3차 요구사항 회의 / TeamProject_Req3.pdf. **Core·UI 팀원의 API 합의 전 초안**.
+기준: 2026-11-07 3차 요구사항 회의 / TeamProject_Req3.pdf. **2026-11-26 실제 Core 코드의 API를 반영한 Infra v4. UI 화면 연동은 미완성.**
 
 ## 설계 원칙
 
@@ -12,7 +12,7 @@
 
 ## 전송 포맷
 
-TCP 프레임: `int32 frameLength` 뒤에 `[int32 version=1, UTF messageType, int64 sequence, int32 payloadLength, UTF-8 payloadBytes]`.
+TCP 프레임: `int32 frameLength` 뒤에 `[int32 version=2, UTF messageType, int64 sequence, int32 payloadLength, UTF-8 payloadBytes]`.
 
 - 한 프레임 최대 512 KiB. 잘못된 길이와 버전은 거부.
 - `sequence`는 송신측 연결 내 단조 증가. 수신측은 중복·이전 순번 메시지를 무시.
@@ -21,7 +21,7 @@ TCP 프레임: `int32 frameLength` 뒤에 `[int32 version=1, UTF messageType, in
 
 | 메시지 | 송신 | payload | 의미 |
 | --- | --- | --- | --- |
-| `HELLO` | 양측 | `1` | 프로토콜 버전 확인 |
+| `HELLO` | 양측 | `2` | 프로토콜 버전 확인 |
 | `MODE_SELECT` | 서버 | `NORMAL|0`, `ITEM|0`, `TIMED|180` 등 | 경기 유형 및 제한시간(초) 전달 |
 | `READY` | 양측 | `true` / `false` | 준비 여부 |
 | `START` | 서버 | 빈 문자열 | 양측 준비 완료, 경기 시작 |
@@ -39,9 +39,11 @@ TCP 프레임: `int32 frameLength` 뒤에 `[int32 version=1, UTF messageType, in
 
 - `board`: **20개 문자열**, 각 문자열 길이 **10**. 위에서 아래 순서. **현재 블록을 포함한 화면 표시 상태**.
 - `next`: 미리보기 행 문자열 0~4개, 각 행 길이 1~4.
-- `score`, `lines`, `level`, `gameOver`: 원격 화면에 필요한 최소 정보.
-- 각 셀은 ASCII 1문자: `.`은 빈칸, 나머지는 블록/색상/아이템을 식별할 코드(추후 팀 합의).
-- `Game.getDisplayBoard()`/`getNextMino()`의 `Cell[][]`를 위 코드표에 따라 변환하는 **Core/UI 어댑터는 아직 없음**.
+- `score`, `lines`, `level`, `gameOver`, `paused`: 원격 화면에 필요한 진행 정보.
+- `pendingAttacks`: Core의 `getAttackedLines()`로 읽는 10×10 공격 대기 표시.
+- `waitingDelete`, `deleteWaitingCells`: Core의 줄 삭제 애니메이션 상태 및 20×10 셀 마스크.
+- 각 셀은 ASCII 1문자: `.` 빈칸, `#` 실제 Core 공격 셀 `A`, 일반 블록은 대문자 I/J/L/O/S/T/Z, 아이템은 소문자 l/w/c/b/r.
+- `GameSnapshotAdapter.capture(game)`가 실제 Core의 `Cell[][]`와 추가 대전 상태를 변환한다.
 - 보내는 쪽은 `GamePayloadCodec.encodeState(state)`를 직접 호출할 필요 없이 `P2PNetworkService.sendGameState(state)`를 사용.
 
 ### `AttackPatternDTO`
@@ -101,7 +103,7 @@ service.close();
 ## Core/UI 협의 필요 사항
 
 1. `Cell[][]` → ASCII 셀 코드 매핑과 NEXT·특수 블록 종류 표현(색약 모드 포함).
-2. 공격 줄의 빈칸 위치 계산 및 Core 대기 큐 전달 API.
+2. Core의 실제 `Board attack()/attacked(Board)`와 `CoreAttackAdapter` 변환 연결 완료. UI 호출부 연동 필요.
 3. 3차 게임 승패 이벤트, 스코어보드 미사용, UI 결과 화면 호출 규약.
 4. **시간제한 경기의 시작·종료 동기화**: `durationSeconds`는 서버에서 양측으로 전달함. 단, 서버 기준 정확한 시작/종료 시각, 동점 처리는 Core·UI 합의 및 실제 게임 적용이 필요함.
 5. `GAME_OVER` 결과 문자열의 정식 enum/자료형, 중복 종료 및 동시 게임 오버 처리.
@@ -111,7 +113,7 @@ service.close();
 ## 완료 범위와 남은 부분
 
 - Infra 단독: 프레임·DTO·TCP·Ready/START·상태/공격 메시지 전송·Ping/Pong·최근 IP 저장·로비 복귀와 재대전 메시지 흐름.
-- 미완성/타팀 필요: Core 대전 판정·공격 패턴 생성·실제 `Cell` 매핑, UI 2인 보드/메뉴/로비/오류 화면, 시간제한 통합, 실제 2대 PC 200ms 검증, 최종 기능 통합 및 배포.
+- 미완성/타팀 필요: Core의 대전 진행·종료 판정과 UI 호출부 통합, UI 2인 보드/메뉴/로비/오류 화면, 시간제한 통합, 실제 2대 PC 200ms 검증, 최종 기능 통합 및 배포. Core `Board` 기반 공격 데이터 변환은 v4에서 완료.
 
 ## 검증
 
@@ -123,4 +125,13 @@ service.close();
 
 `P2PStatePublisher`를 사용하면 Core 측에서 `AtomicReference<GameStateSnapshot>`을 제공하는 것만으로 변경된 보드 상태를 주기적으로 송신할 수 있다. 25Hz(40ms)는 초기값이며 LAN 200ms 표시 지연을 보장하는 성능 측정치가 아니다. 느린 연결에서는 송신 큐가 오래된 `GAME_STATE`를 제거해 최신 스냅샷을 우선한다. `ATTACK` 같은 이벤트는 `GAME_STATE`와 달리 임의로 버리지 않지만, 제어 메시지만으로 큐가 포화되면 전송 시도는 `false`가 될 수 있으므로 Core가 실패를 처리해야 한다.
 
-`NetworkListener`의 새 기본 콜백 `onMatchStarted(mode, durationSeconds)` / `onMatchFinished(result)`는 기존 메시지 종류나 `MessageCodec.VERSION`을 변경하지 않고 UI 연동 지점을 추가한 것이다. 자세한 내용은 [`infra-req3-followup.md`](infra-req3-followup.md)를 참고.
+`NetworkListener`의 새 기본 콜백 `onMatchStarted(mode, durationSeconds)` / `onMatchFinished(result)`는 당시(v2) 기존 메시지 종류나 `MessageCodec.VERSION`을 변경하지 않고 UI 연동 지점을 추가한 것이다. v4에서는 확장된 상태 메시지 때문에 `MessageCodec.VERSION`을 2로 변경했다. 자세한 내용은 [`infra-req3-followup.md`](infra-req3-followup.md)를 참고.
+
+
+## 2026-11-26 Core API 연동 v4
+
+Core에서 제공한 문서와 실제 소스에 자료형 차이가 있어, `Game.attack()`은 `Board`를 반환하고 `Game.attacked(Board)`를 호출하는 것을 기준으로 구현했다. `Game.ATTACK_CELL='A'`는 전송용 `#`로 매핑한다.
+
+`GameStateSnapshot`은 `pendingAttacks`(10×10), `paused`, `waitingDelete`, `deleteWaitingCells`(20×10)를 추가 지원하며, `GamePayloadCodec`의 확장 필드가 포함된 양방향 프로토콜 **2**를 사용한다. 양측에서 동일한 빌드로 실행해야 한다.
+
+게임 프레임에서는 `bridge.applyReceivedAttacks(game)`로 Core 공격 적용, `bridge.captureLocalGame(game)`로 상태 캡처, `game.deleteCells()` 바로 뒤 `bridge.afterDeleteCells(game)`로 송신 이벤트를 처리한다. 구체적인 API 호출 순서 및 주의사항은 [`infra-req3-core-api-v4.md`](infra-req3-core-api-v4.md) 참고.
