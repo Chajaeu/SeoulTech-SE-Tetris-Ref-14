@@ -130,9 +130,9 @@ public class Game {
 
         }
 
-        if (!board.canPlace(currentMino, currentMino.getRow(), currentMino.getCol())) {
-            gameover();
-        }
+        if (board.canPlace(currentMino, currentMino.getRow(), currentMino.getCol())) return;
+        else if (board.canPlace(currentMino, currentMino.getRow() - 1, currentMino.getCol())) currentMino.moveUp();
+        else gameover();
     }
     private void createItemMino() {
         char itemType = itemTypes[random.nextInt(itemTypes.length)];
