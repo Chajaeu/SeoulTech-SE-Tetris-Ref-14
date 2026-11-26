@@ -94,10 +94,7 @@ public class Game {
     // if (!checkCanOperate()) return;
     //  if (!checkCanOperate() || currentMino == null) return;
     public boolean checkCanOperate() {
-        if (!isPaused && !isGameover && !isWaitingDelete) {
-            return true;
-        }
-        return false;
+        return !isPaused && !isGameover && !isWaitingDelete;
     }
 
 
@@ -174,8 +171,7 @@ public class Game {
         return tempMino;
     }
     public Cell[][] getAttackedLines() {
-        Cell[][] temp = attackedLines.getBoardCopy();
-        return temp;
+        return attackedLines.getBoardCopy();
     }
 
     // 드랍 틱 간격(줄 삭제 시에만 한번씩 확인하면 됨)
@@ -339,7 +335,8 @@ public class Game {
             return;
         }
 
-        Cell[][] temp = board.getBoardCopy();
+        Cell[][] temp = null;
+        if (battleMode) temp = board.getBoardCopy();
         board.fixMino(currentMino);
         currentMino = null;
         
@@ -382,11 +379,6 @@ public class Game {
     
     private int[] searchDeleteCells() {
         deleteWaitingCells = new boolean[ROWS][COLS];
-        for (int r = 0; r < ROWS; r++) {
-            for (int c = 0; c < COLS; c++) {
-                deleteWaitingCells[r][c] = false;
-            }
-        }
 
         int fullLineCount = 0;
         int[] tempFullLines = new int[10]; 
@@ -547,6 +539,8 @@ public class Game {
     }
 
     private void applyAttack() {
+        if (attackedLinesCount == 0) return;
+
         for (int r=0; r < attackedLinesCount; r++){
             for (int c=0; c<COLS; c++){
                 if (!board.getCell(r, c).isEmpty()) {
