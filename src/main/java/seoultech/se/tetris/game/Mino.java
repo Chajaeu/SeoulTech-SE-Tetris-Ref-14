@@ -37,10 +37,6 @@ public class Mino {
                 break;
 
             case LINE_CLEAR:
-                defaultMino();
-                setItemCell();
-                break;
-
             case COLUMN_CLEAR:
                 defaultMino();
                 setItemCell();
@@ -57,15 +53,6 @@ public class Mino {
                 break;
 
             case BOMB:
-                shape = new Cell[2][2];
-                shape[0][0] = new Cell(itemType, true, itemType);
-                shape[0][1] = new Cell(itemType, true, itemType);
-                shape[1][1] = new Cell(itemType, true, itemType);
-                shape[1][0] = new Cell(itemType, true, itemType);
-                row = 0;
-                col = 4;
-                break;
-
             case REPLICATION:
                 shape = new Cell[1][1];
                 shape[0][0] = new Cell(itemType, true, itemType);

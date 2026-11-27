@@ -19,6 +19,8 @@ public class Game {
     private static final int MIN_TICK_INTERVAL = 200;
     // 공격 대기열 줄 수
     private static final int MAX_ATTACK_LINES = 10;
+    // 아이템-폭탄 반경
+    private static final int BOMB_RADIUS = 2;
 
 
     // 필드
@@ -409,12 +411,9 @@ public class Game {
                             break;
                         
                         case Mino.BOMB:
-                            for (int i=0; i<3; i++) {
-                                for (int j=0; j<3; j++) {
-                                    if (r-1+i < 0 || r-1+i >= ROWS || c-1+j < 0 || c-1+j >= COLS) {
-                                        continue;
-                                    }
-                                    deleteWaitingCells[r-1+i][c-1+j] = true;
+                            for (int row = Math.max(0, r - BOMB_RADIUS); row <= Math.min(ROWS - 1, r + BOMB_RADIUS); row++) {
+                                for (int col = Math.max(0, c - BOMB_RADIUS); col <= Math.min(COLS - 1, c + BOMB_RADIUS); col++) {
+                                    deleteWaitingCells[row][col] = true;
                                 }
                             }
                             break;
