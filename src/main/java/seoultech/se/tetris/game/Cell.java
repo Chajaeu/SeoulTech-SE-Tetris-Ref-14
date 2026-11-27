@@ -33,9 +33,6 @@ public final class Cell {
 
     // 빈칸 여부 확인
     public boolean isEmpty() {
-        if (type == ' '){
-            return true;
-        }
-        return false;
+        return type == ' ';
     }
 }

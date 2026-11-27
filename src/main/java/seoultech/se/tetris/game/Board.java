@@ -69,7 +69,7 @@ public class Board {
 
     public boolean canPlace(Cell[][] shape, int row, int col) {
         for (int r = 0; r < shape.length; r++) {
-            for (int c = 0; c < shape.length; c++){
+            for (int c = 0; c < shape[r].length; c++){
                 if (shape[r][c].isEmpty()) {
                     continue;
                 }
