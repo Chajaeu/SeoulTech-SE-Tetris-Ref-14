@@ -25,8 +25,6 @@ import seoultech.se.tetris.game.Game;
 import seoultech.se.tetris.infra.persistence.SettingsRepository;
 
 public final class MultiPlayUI extends PlayUI {
-    private enum MatchType { LOCAL, P2P }
-
     // 임시로 넣어둔 Player2 키
     static final List<KeyCode> PLAYER_2_KEYS = List.of(
         KeyCode.A, KeyCode.D, KeyCode.S, KeyCode.W, KeyCode.CONTROL);
@@ -43,19 +41,70 @@ public final class MultiPlayUI extends PlayUI {
     private KeyCode pauseKey;
     private StackPane pauseOverlay;
     private PauseTransition matchClock;
+    private P2PGame p2pGame;
+    private boolean p2pMode;
+    private boolean networkPaused;
+    private boolean viewDisposed;
+    private boolean localGameOverReported;
+    private Pane opponentBoardPane;
+    private Pane opponentNextPane;
+    private Pane opponentStatusPane;
+    private Label opponentScoreLabel;
+    private Label networkLabel;
+    private Label p2pTimerLabel;
 
     public static void showLocal(Stage stage, UIResolution.Size resolution,
             boolean itemMode, boolean timeMode) throws Exception {
-        show(stage, resolution, MatchType.LOCAL, itemMode, timeMode);
+        new MultiPlayUI().openLocal(stage, resolution, itemMode, timeMode);
     }
 
-    private static void show(Stage stage, UIResolution.Size resolution,
-            MatchType type, boolean itemMode, boolean timeMode) throws Exception {
-        if (type == MatchType.LOCAL) {
-            new MultiPlayUI().openLocal(stage, resolution, itemMode, timeMode);
-        } else if (type == MatchType.P2P) {
-            // TODO: 로비 연결 후 대전 화면을 연다.
-        }
+    public static MultiPlayUI showP2P(Stage stage, UIResolution.Size resolution,
+            boolean server, boolean itemMode, boolean timeMode, int durationSeconds,
+            P2PGame p2pGame) throws Exception {
+        MultiPlayUI ui = new MultiPlayUI();
+        ui.openP2P(stage, resolution, server, itemMode, timeMode, durationSeconds, p2pGame);
+        return ui;
+    }
+
+    private void openP2P(Stage stage, UIResolution.Size resolution, boolean server,
+            boolean itemMode, boolean timeMode, int durationSeconds, P2PGame p2pGame) throws Exception {
+        this.stage = stage; this.resolution = resolution; this.itemMode = itemMode;
+        this.timeMode = timeMode; this.p2pGame = p2pGame; p2pMode = true;
+        var settings = new SettingsRepository().loadSettings();
+        List<KeyCode> keys = List.of(KeyCode.valueOf(settings.getKeyLeft()),
+            KeyCode.valueOf(settings.getKeyRight()), KeyCode.valueOf(settings.getKeyDown()),
+            KeyCode.valueOf(settings.getKeyRotate()), KeyCode.valueOf(settings.getKeyDrop()));
+        FXMLLoader loader = new FXMLLoader(MultiPlayUI.class.getResource("fxml/MultiPlayUI.fxml"));
+        designRoot = loader.load();
+        Map<String, Object> nodes = loader.getNamespace();
+        String mine = server ? "player1" : "player2";
+        String other = server ? "player2" : "player1";
+        // Core의 기존 대전 규칙을 사용한다. 상대 Core는 만들지 않는다.
+        connectPlayer(nodes, mine, keys, settings.isColorblindMode());
+        opponentBoardPane = (Pane) nodes.get(other + "BoardPane");
+        opponentNextPane = (Pane) nodes.get(other + "NextPane");
+        opponentStatusPane = (Pane) nodes.get(other + "StatusPane");
+        Pane scorePane = (Pane) nodes.get(other + "ScorePane");
+        opponentScoreLabel = new Label("—");
+        opponentScoreLabel.setAlignment(javafx.geometry.Pos.CENTER);
+        opponentScoreLabel.setStyle("-fx-text-fill: white; -fx-font-size: 24px;");
+        opponentScoreLabel.prefWidthProperty().bind(scorePane.widthProperty());
+        opponentScoreLabel.prefHeightProperty().bind(scorePane.heightProperty());
+        scorePane.getChildren().setAll(opponentScoreLabel);
+        networkLabel = (Label) nodes.get("networkQualityLabel");
+        networkLabel.setVisible(true); networkLabel.setManaged(true);
+        p2pTimerLabel = (Label) nodes.get("timerLabel");
+        p2pTimerLabel.setVisible(timeMode); p2pTimerLabel.setManaged(timeMode);
+        updateP2PStatus(durationSeconds, -1);
+        double scale = Math.min(resolution.getWidth() / designRoot.getPrefWidth(),
+            resolution.getHeight() / designRoot.getPrefHeight());
+        designRoot.setScaleX(scale); designRoot.setScaleY(scale); designRoot.setFocusTraversable(true);
+        Scene scene = new Scene(new StackPane(designRoot), resolution.getWidth(), resolution.getHeight());
+        setupKeyboard(scene, keys);
+        stage.setScene(scene); stage.setResizable(false); stage.sizeToScene(); setupCleanup(stage, scene);
+        stage.show(); scene.getRoot().applyCss(); scene.getRoot().layout(); designRoot.requestFocus();
+        startPlayer();
+        // P2P의 남은 시간은 외부 확정 값으로 갱신한다. 로컬 타이머를 따로 시작하지 않는다.
     }
 
     private void openLocal(Stage stage, UIResolution.Size resolution,
@@ -144,10 +193,14 @@ public final class MultiPlayUI extends PlayUI {
     private void setupKeyboard(Scene scene, List<KeyCode> firstKeys) {
         UIInteraction.trackInput(scene);
         scene.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
-            if (event.isConsumed() || pauseOverlay != null || finished) {
+            if (event.isConsumed() || pauseOverlay != null || finished || viewDisposed || networkPaused) {
                 return;
             }
             KeyCode key = event.getCode();
+            if (p2pMode) {
+                if (firstKeys.contains(key) && handleGameKey(key)) event.consume();
+                return;
+            }
             if (key == pauseKey) {
                 event.consume();
                 runUiAction(this::openPause);
@@ -160,25 +213,39 @@ public final class MultiPlayUI extends PlayUI {
 
     @Override
     protected void refreshGameView() {
+        if (viewDisposed) return;
         super.refreshGameView();
         refreshAttackStatus();
+        if (p2pMode) p2pGame.afterGameUpdate(battleGame);
+    }
+
+    @Override
+    protected void beforeGameUpdate() {
+        if (p2pMode) p2pGame.beforeGameUpdate(battleGame);
     }
 
     private void refreshAttackStatus() {
-        Cell[][] pending = battleGame.getAttackedLines();
-        Insets insets = statusPane.getInsets();
-        double width = statusPane.getWidth() - insets.getLeft() - insets.getRight();
-        double height = statusPane.getHeight() - insets.getTop() - insets.getBottom();
+        drawPendingAttack(statusPane, battleGame.getAttackedLines());
+    }
+
+    private void drawPendingAttack(Pane pane, Cell[][] pending) {
+        Insets insets = pane.getInsets();
+        double width = pane.getWidth() - insets.getLeft() - insets.getRight();
+        double height = pane.getHeight() - insets.getTop() - insets.getBottom();
         double size = Math.min(width / Game.COLS, height / Game.ROWS);
         if (size > 0) {
             double left = insets.getLeft() + (width - Game.COLS * size) / 2;
-            double top = statusPane.getHeight() - insets.getBottom() - pending.length * size;
-            placeCells(statusPane, pending, false, size, left, top, null);
+            double top = pane.getHeight() - insets.getBottom() - pending.length * size;
+            placeCells(pane, pending, false, size, left, top, null);
         }
     }
 
     @Override
     protected void afterLinesCleared() {
+        if (p2pMode) {
+            p2pGame.afterLinesCleared(battleGame);
+            return;
+        }
         if (battleGame.getIsGameover()) {
             return;
         }
@@ -200,6 +267,13 @@ public final class MultiPlayUI extends PlayUI {
 
     @Override
     protected void openGameOver() throws IOException {
+        if (p2pMode) {
+            if (!localGameOverReported) {
+                localGameOverReported = true;
+                p2pGame.onLocalGameOver(battleGame);
+            }
+            return;
+        }
         host.finishMatch(host == this ? Result.Winner.PLAYER_2 : Result.Winner.PLAYER_1);
     }
 
@@ -254,12 +328,42 @@ public final class MultiPlayUI extends PlayUI {
 
     @Override
     protected void disposeGame() {
+        if (viewDisposed) return;
+        viewDisposed = true;
         super.disposeGame();
         if (host == this) {
-            opponent.disposeGame();
+            if (opponent != null) opponent.disposeGame();
             if (matchClock != null) {
                 matchClock.stop();
             }
         }
     }
+
+    void updateOpponent(Cell[][] board, Cell[][] next, int score, Cell[][] pendingAttack) {
+        if (!p2pMode || viewDisposed || finished || networkPaused) return;
+        drawCells(opponentBoardPane, board, true);
+        drawCells(opponentNextPane, next, false);
+        opponentScoreLabel.setText(Integer.toString(score));
+        drawPendingAttack(opponentStatusPane, pendingAttack);
+    }
+
+    void updateP2PStatus(int remainingSeconds, long rttMillis) {
+        if (!p2pMode || viewDisposed) return;
+        p2pTimerLabel.setText(formatTime(Math.max(0, remainingSeconds)));
+        networkLabel.setText(rttMillis < 0 ? "— ms" : rttMillis + " ms");
+    }
+
+    void showP2PResult(Result.Winner winner, int score1, int score2,
+            Runnable onRestart, Runnable onBack) throws IOException {
+        if (!p2pMode || finished) return;
+        finished = true; disposeGame();
+        showOverlay(Result.create(winner, score1, score2, onRestart, onBack), "resultOverlay");
+    }
+
+    void suspendForNetworkIssue() {
+        if (!p2pMode || viewDisposed) return;
+        networkPaused = true; pauseGameUpdates();
+    }
+
+    void stopP2PView() { disposeGame(); }
 }

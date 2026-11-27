@@ -151,8 +151,8 @@ public class MainMenuUI {
                     clientIpPane.managedProperty().bind(client.selectedProperty());
                     ((Label) loader.getNamespace().get("serverIpLabel")).setText(getLocalIpAddress());
                     server.setSelected(true);
-                    // 서버/클라이언트 접속 아직 연결 X
-                    startButton.setDisable(true);
+                    P2PGame.bindJoin(stage, resolution, designRoot, overlay,
+                        popup, loader.getNamespace());
                 }
                 default -> throw new IllegalArgumentException("Unknown game setup: " + fxml);
             }
