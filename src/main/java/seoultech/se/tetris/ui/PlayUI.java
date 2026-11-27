@@ -44,17 +44,16 @@ public class PlayUI {
     // 게임 상태는 Core가 관리하고 클래스는 입력과 화면 갱신을 담당
     private Game game;
     private GameSessionService gameSession;
-    private Stage stage;
-    private UIResolution.Size resolution;
+    protected Stage stage;
+    protected UIResolution.Size resolution;
     private Difficulty difficulty;
     private boolean itemMode;
     private boolean colorblindMode;
     private KeyCode pauseKey;
     private final Map<KeyCode, Runnable> gameActions = new EnumMap<>(KeyCode.class);
-    private Pane designRoot;
+    protected Pane designRoot;
     private Pane playboardPane;
     private Pane nextPane;
-    private Pane myScorePane;
     private Pane scoreboardPane;
     private StackPane pauseOverlay;
     private StackPane gameOverOverlay;
@@ -91,15 +90,9 @@ public class PlayUI {
         designRoot.setFocusTraversable(true);
         playboardPane = (Pane) loader.getNamespace().get("playboard_pane");
         nextPane = (Pane) loader.getNamespace().get("next_pane");
-        myScorePane = (Pane) loader.getNamespace().get("myscore_pane");
+        Pane myScorePane = (Pane) loader.getNamespace().get("myscore_pane");
         scoreboardPane = (Pane) loader.getNamespace().get("scoreboard_pane");
-        scoreLabel = new Label("0");
-        scoreLabel.setId("currentScore");
-        scoreLabel.setAlignment(Pos.CENTER);
-        scoreLabel.setStyle("-fx-text-fill: white; -fx-font-size: 28px; -fx-font-weight: bold;");
-        scoreLabel.prefWidthProperty().bind(myScorePane.widthProperty());
-        scoreLabel.prefHeightProperty().bind(myScorePane.heightProperty());
-        myScorePane.getChildren().add(scoreLabel);
+        setupScoreLabel(myScorePane, "currentScore", 28);
 
         int boardWidth = resolution.getWidth();
         int boardHeight = resolution.getHeight();
@@ -169,15 +162,12 @@ public class PlayUI {
 
     private void openPause() throws Exception {
         Parent popup = Pause.create(this::resumeGame, this::returnToMainMenu);
-        if (fallTimer != null) {
-            fallTimer.pause();
-        }
         pauseGame();
 
         pauseOverlay = showOverlay(popup, "pauseOverlay");
     }
 
-    private void openGameOver() throws Exception {
+    protected void openGameOver() throws Exception {
         if (gameOverOverlay != null) {
             return;
         }
@@ -211,7 +201,7 @@ public class PlayUI {
     }
 
     // 화면 전체를 덮어 팝업 뒤쪽 클릭을 차단
-    private StackPane showOverlay(Parent popup, String id) {
+    protected final StackPane showOverlay(Parent popup, String id) {
         StackPane overlay = new StackPane(popup);
         overlay.setId(id);
         overlay.setPrefSize(designRoot.getPrefWidth(), designRoot.getPrefHeight());
@@ -233,7 +223,7 @@ public class PlayUI {
     }
 
     // MAIN → 메인 메뉴로 전환, 기존 타이머는 화면 변경 시 정리
-    private void returnToMainMenu() {
+    protected final void returnToMainMenu() {
         try {
             MainMenuUI.show(stage, resolution);
         } catch (Exception ex) {
@@ -245,13 +235,8 @@ public class PlayUI {
         designRoot.getChildren().remove(pauseOverlay);
         pauseOverlay = null;
 
-        game.resume();
-        restartFallTimer();
+        resumePlay();
         designRoot.requestFocus();
-    }
-
-    private void pauseGame() {
-        game.pause();
     }
 
     private boolean initializeGame() {
@@ -274,25 +259,65 @@ public class PlayUI {
         gameSession = new GameSessionService(settingsRepository, new ScoreRepository());
         game = gameSession.startGame(itemMode ? GameMode.ITEM : GameMode.NORMAL);
         pauseKey = KeyCode.valueOf(settings.getKeyPause());
-        gameActions.put(KeyCode.valueOf(settings.getKeyLeft()), game::moveLeft);
-        gameActions.put(KeyCode.valueOf(settings.getKeyRight()), game::moveRight);
-        gameActions.put(KeyCode.valueOf(settings.getKeyDown()), () -> {
+        bindGameKeys(KeyCode.valueOf(settings.getKeyLeft()),
+            KeyCode.valueOf(settings.getKeyRight()), KeyCode.valueOf(settings.getKeyDown()),
+            KeyCode.valueOf(settings.getKeyRotate()), KeyCode.valueOf(settings.getKeyDrop()));
+        refreshScoreboard(null);
+        return true;
+    }
+
+    // 서브클래스의 게임과 화면을 기존 입력·렌더링 로직에 연결한다.
+    protected final void configurePlayer(Game game, Pane boardPane, Pane nextPane,
+            Pane scorePane, String scoreId, int fontSize, boolean colorblindMode) {
+        this.game = game;
+        this.playboardPane = boardPane;
+        this.nextPane = nextPane;
+        this.colorblindMode = colorblindMode;
+        setupScoreLabel(scorePane, scoreId, fontSize);
+    }
+
+    private void setupScoreLabel(Pane scorePane, String scoreId, int fontSize) {
+        scoreLabel = new Label("0");
+        scoreLabel.setId(scoreId);
+        scoreLabel.setAlignment(Pos.CENTER);
+        scoreLabel.setStyle("-fx-text-fill: white; -fx-font-size: " + fontSize
+            + "px; -fx-font-weight: bold;");
+        scoreLabel.prefWidthProperty().bind(scorePane.widthProperty());
+        scoreLabel.prefHeightProperty().bind(scorePane.heightProperty());
+        scorePane.getChildren().add(scoreLabel);
+    }
+
+    protected final void bindGameKeys(KeyCode left, KeyCode right, KeyCode down,
+            KeyCode rotate, KeyCode drop) {
+        gameActions.put(left, game::moveLeft);
+        gameActions.put(right, game::moveRight);
+        gameActions.put(down, () -> {
             if (!game.hasCurrentMino()) {
                 return;
             }
             game.moveDown();
             restartFallTimer();
         });
-        gameActions.put(KeyCode.valueOf(settings.getKeyRotate()), game::rotateCW);
-        gameActions.put(KeyCode.valueOf(settings.getKeyDrop()), () -> {
+        gameActions.put(rotate, game::rotateCW);
+        gameActions.put(drop, () -> {
             if (!game.hasCurrentMino()) {
                 return;
             }
             game.harddrop();
             restartFallTimer();
         });
-        refreshScoreboard(null);
-        return true;
+    }
+
+    protected final void pauseGame() {
+        if (fallTimer != null) {
+            fallTimer.pause();
+        }
+        game.pause();
+    }
+
+    protected final void resumePlay() {
+        game.resume();
+        restartFallTimer();
     }
 
     // 게임 시작과 기록 저장 뒤에만 조회하여, 낙하마다 파일을 다시 읽지 않음
@@ -342,7 +367,7 @@ public class PlayUI {
         return label;
     }
 
-    private boolean handleGameKey(KeyCode code) {
+    protected final boolean handleGameKey(KeyCode code) {
         if (disposed || game.getIsGameover()) {
             return false;
         }
@@ -358,7 +383,7 @@ public class PlayUI {
         return true;
     }
 
-    private void startGameLoop(int intervalMillis) {
+    protected final void startGameLoop(int intervalMillis) {
         stopGameLoop();
         fallInterval = intervalMillis;
         fallTimer = new Timeline(new KeyFrame(
@@ -384,7 +409,7 @@ public class PlayUI {
         refreshGameView();
     }
 
-    private void refreshGameView() {
+    protected void refreshGameView() {
         if (disposed || deleteAnimation != null) {
             return;
         }
@@ -431,14 +456,20 @@ public class PlayUI {
             }
             // 일시정지 중에도 삭제는 완료하고 Core의 정지 상태 유지
             game.deleteCells();
+            afterLinesCleared();
             startGameLoop(game.getTickInterval());
             refreshGameView();
         });
         deleteAnimation.play();
     }
 
+    protected void afterLinesCleared() {}
+
+    protected StackPane createTile(Cell cell, double size) {
+        return BlockRenderer.createCell(cell, size, colorblindMode);
+    }
+
     private void drawCells(Pane pane, Cell[][] cells, boolean showGrid) {
-        pane.getChildren().clear();
         Insets insets = pane.getInsets();
         double width = pane.getWidth() > 0 ? pane.getWidth() : pane.getPrefWidth();
         double height = pane.getHeight() > 0 ? pane.getHeight() : pane.getPrefHeight();
@@ -452,15 +483,23 @@ public class PlayUI {
         }
         double left = (width - cellSize * cells[0].length) / 2;
         double top = (height - cellSize * cells.length) / 2;
+        placeCells(pane, cells, showGrid, cellSize, left, top, showGrid ? "boardCell-" : "nextCell-");
+    }
 
+    // 셀 배치만 공통으로 처리한다. 호출한 화면에서 크기와 시작 위치를 정한다.
+    protected final void placeCells(Pane pane, Cell[][] cells, boolean showGrid,
+            double cellSize, double left, double top, String idPrefix) {
+        pane.getChildren().clear();
         for (int row = 0; row < cells.length; row++) {
             for (int col = 0; col < cells[row].length; col++) {
                 Cell cell = cells[row][col];
                 if (cell.isEmpty() && !showGrid) {
                     continue;
                 }
-                StackPane square = BlockRenderer.createCell(cell, cellSize, colorblindMode);
-                square.setId((showGrid ? "boardCell-" : "nextCell-") + row + "-" + col);
+                StackPane square = createTile(cell, cellSize);
+                if (idPrefix != null) {
+                    square.setId(idPrefix + row + "-" + col);
+                }
                 square.setLayoutX(left + col * cellSize);
                 square.setLayoutY(top + row * cellSize);
                 square.setPrefSize(cellSize, cellSize);
@@ -475,7 +514,7 @@ public class PlayUI {
         }
     }
 
-    private void disposeGame() {
+    protected void disposeGame() {
         disposed = true;
         stopGameLoop();
         if (deleteAnimation != null) {
@@ -484,7 +523,7 @@ public class PlayUI {
         }
     }
 
-    private void setupCleanup(Stage stage, Scene scene) {
+    protected final void setupCleanup(Stage stage, Scene scene) {
         EventHandler<WindowEvent> onHidden = e -> disposeGame();
         stage.addEventHandler(WindowEvent.WINDOW_HIDDEN, onHidden);
         stage.sceneProperty().addListener(new ChangeListener<Scene>() {
