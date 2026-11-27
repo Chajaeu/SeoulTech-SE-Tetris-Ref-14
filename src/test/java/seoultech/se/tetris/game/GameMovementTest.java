@@ -273,6 +273,70 @@ class GameMovementTest {
     }
 
     @Test
+    void iSpawnsNormallyAndCanRotateImmediately() {
+        Game game = readyToSpawnI(Mino.NO_ITEM);
+
+        game.harddrop();
+
+        assertFalse(game.getIsGameover());
+        assertEquals(0, current(game).getRow());
+        assertEquals('I', game.getDisplayBoard()[1][3].getType());
+
+        game.rotateCW();
+        Cell[][] display = game.getDisplayBoard();
+        for (int row = 0; row < 4; row++) {
+            assertEquals('I', display[row][5].getType());
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(chars = {Mino.NO_ITEM, Mino.LINE_CLEAR, Mino.COLUMN_CLEAR})
+    void iSpawnsOneRowHigherWhenSecondRowIsBlocked(char itemType) {
+        Game game = readyToSpawnI(itemType);
+        board(game).setCell(1, 4, new Cell('Z'));
+
+        game.harddrop();
+
+        assertFalse(game.getIsGameover());
+        assertEquals(-1, current(game).getRow());
+
+        Cell[][] display = game.getDisplayBoard();
+        int itemCells = 0;
+        for (int col = 3; col <= 6; col++) {
+            Cell cell = display[0][col];
+            assertFalse(cell.isEmpty());
+            if (cell.isItem()) {
+                assertEquals(itemType, cell.getType());
+                itemCells++;
+            }
+        }
+        assertEquals(itemType == Mino.NO_ITEM ? 0 : 1, itemCells);
+        assertEquals('Z', display[1][4].getType());
+    }
+
+    @Test
+    void blockedISpawnShowsFailedPieceAndKeepsFixedBoard() {
+        Game game = readyToSpawnI(Mino.NO_ITEM);
+        board(game).setCell(0, 4, new Cell('J'));
+        board(game).setCell(1, 4, new Cell('Z'));
+
+        game.harddrop();
+
+        assertTrue(game.getIsGameover());
+        assertTrue(game.hasCurrentMino());
+        assertEquals(0, current(game).getRow());
+        assertEquals('Z', board(game).getCell(1, 4).getType());
+        assertEquals('I', game.getDisplayBoard()[1][4].getType());
+    }
+
+    private Game readyToSpawnI(char itemType) {
+        Game game = new Game(Game.NORMAL, itemType != Mino.NO_ITEM);
+        set(game, "currentMino", at(new Mino('O'), 18, 0));
+        set(game, "nextMino", new Mino('I', itemType));
+        return game;
+    }
+
+    @Test
     void newGameDoesNotInheritPreviousGameState() {
         Game previous = gameWaitingForDeletion();
         previous.deleteCells();
