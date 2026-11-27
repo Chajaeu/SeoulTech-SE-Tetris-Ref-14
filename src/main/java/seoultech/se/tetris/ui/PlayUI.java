@@ -378,6 +378,7 @@ public class PlayUI {
         if (action == null) {
             return false;
         }
+        beforeGameUpdate();
         action.run();
         refreshGameView();
         return true;
@@ -405,6 +406,7 @@ public class PlayUI {
         if (disposed || game.getIsPaused() || deleteAnimation != null) {
             return;
         }
+        beforeGameUpdate();
         game.tick();
         refreshGameView();
     }
@@ -455,6 +457,7 @@ public class PlayUI {
                 return;
             }
             // 일시정지 중에도 삭제는 완료하고 Core의 정지 상태 유지
+            beforeGameUpdate();
             game.deleteCells();
             afterLinesCleared();
             startGameLoop(game.getTickInterval());
@@ -463,13 +466,21 @@ public class PlayUI {
         deleteAnimation.play();
     }
 
+    protected void beforeGameUpdate() {}
+
     protected void afterLinesCleared() {}
+
+    // P2P 오류 화면으로 전환할 때 삭제 애니메이션도 함께 멈춘다.
+    protected final void pauseGameUpdates() {
+        pauseGame();
+        if (deleteAnimation != null) deleteAnimation.pause();
+    }
 
     protected StackPane createTile(Cell cell, double size) {
         return BlockRenderer.createCell(cell, size, colorblindMode);
     }
 
-    private void drawCells(Pane pane, Cell[][] cells, boolean showGrid) {
+    protected final void drawCells(Pane pane, Cell[][] cells, boolean showGrid) {
         Insets insets = pane.getInsets();
         double width = pane.getWidth() > 0 ? pane.getWidth() : pane.getPrefWidth();
         double height = pane.getHeight() > 0 ? pane.getHeight() : pane.getPrefHeight();
