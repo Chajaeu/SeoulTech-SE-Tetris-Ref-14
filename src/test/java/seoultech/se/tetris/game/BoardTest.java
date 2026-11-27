@@ -171,19 +171,19 @@ class BoardTest {
     void weightChecksItsFullTwoByFourArea() {
         Mino weight = new Mino('T', Mino.WEIGHT);
 
-        assertTrue(board.canPlace(weight, 18, 6));
+        assertPlacement(true, weight, 18, 6);
 
-        assertFalse(board.canPlace(weight, 19, 6));
-        assertFalse(board.canPlace(weight, 18, 7));
-        assertFalse(board.canPlace(weight, -1, 3));
-        assertFalse(board.canPlace(weight, 0, -1));
+        assertPlacement(false, weight, 19, 6);
+        assertPlacement(false, weight, 18, 7);
+        assertPlacement(false, weight, -1, 3);
+        assertPlacement(false, weight, 0, -1);
 
         // 2×4의 여덟 칸 모두 충돌 대상인지 검사한다.
         for (int r = 0; r < 2; r++) {
             for (int c = 0; c < 4; c++) {
                 board.setCell(10 + r, 3 + c, new Cell('J'));
 
-                assertFalse(board.canPlace(weight, 10, 3));
+                assertPlacement(false, weight, 10, 3);
 
                 board.setCell(10 + r, 3 + c, new Cell());
             }
