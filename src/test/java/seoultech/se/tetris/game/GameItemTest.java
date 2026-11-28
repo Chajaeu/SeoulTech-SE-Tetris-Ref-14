@@ -201,35 +201,38 @@ class GameItemTest {
         assertNull(get(game, "subMino"));
     }
 
-    // 중앙, 네 변, 네 모서리에서 폭발 범위를 검사한다.
+    // 중앙, 네 변, 네 모서리에서 5×5 폭발 범위를 검사한다.
     @ParameterizedTest
     @CsvSource({
-        "8, 4, 7, 10, 3, 6",
-        "0, 4, 0, 2, 3, 6",
-        "18, 4, 17, 19, 3, 6",
-        "8, 0, 7, 10, 0, 2",
-        "8, 8, 7, 10, 7, 9",
+        "8, 4, 6, 10, 2, 6",
+        "0, 4, 0, 2, 2, 6",
+        "19, 4, 17, 19, 2, 6",
+        "8, 0, 6, 10, 0, 2",
+        "8, 9, 6, 10, 7, 9",
         "0, 0, 0, 2, 0, 2",
-        "0, 8, 0, 2, 7, 9",
-        "18, 0, 17, 19, 0, 2",
-        "18, 8, 17, 19, 7, 9"
+        "0, 9, 0, 2, 7, 9",
+        "19, 0, 17, 19, 0, 2",
+        "19, 9, 17, 19, 7, 9"
     })
     void bombMarksOnlyItsClippedExplosionArea(
             int row, int col, int top, int bottom, int left, int right) {
         Game game = itemGame(new Mino('T', Mino.BOMB), row, col);
 
-        if (row + 2 < 20) {
-            board(game).setCell(row + 2, col, new Cell('J'));
+        // 바닥이 아니면 폭탄 바로 아래를 막아 지정한 위치에 착지시킨다.
+        if (row + 1 < Game.ROWS) {
+            board(game).setCell(row + 1, col, new Cell('J'));
         }
         int outsideCol = col <= 4 ? 9 : 0;
         board(game).setCell(15, outsideCol, new Cell('Z'));
+
         game.moveDown();
 
+        assertTrue(game.getIsWaitingDelete());
         boolean[][] mask = game.getDeleteWaitingCells();
         assertEquals((bottom - top + 1) * (right - left + 1), marked(mask));
 
-        for (int r = 0; r < 20; r++) {
-            for (int c = 0; c < 10; c++) {
+        for (int r = 0; r < Game.ROWS; r++) {
+            for (int c = 0; c < Game.COLS; c++) {
                 boolean expected = r >= top && r <= bottom && c >= left && c <= right;
                 assertEquals(expected, mask[r][c], "row=" + r + ", col=" + c);
             }
@@ -248,16 +251,18 @@ class GameItemTest {
 
     @Test
     void bombCombinesWithCompletedRow() {
-        Game game = itemGame(new Mino('T', Mino.BOMB), 18, 4);
-        fillRow(board(game), 19, 4, 5);
+        Game game = itemGame(new Mino('T', Mino.BOMB), 19, 4);
+        fillRow(board(game), 19, 4);
         board(game).setCell(16, 0, new Cell('Z'));
+
         game.moveDown();
 
+        // 완성된 바닥 행 10칸과 바로 위 두 행의 5칸씩을 삭제한다.
         boolean[][] mask = game.getDeleteWaitingCells();
-        assertEquals(18, marked(mask));
+        assertEquals(20, marked(mask));
         assertRowMarked(mask, 19);
         for (int r = 17; r <= 18; r++) {
-            for (int c = 3; c <= 6; c++) {
+            for (int c = 2; c <= 6; c++) {
                 assertTrue(mask[r][c]);
             }
         }
@@ -268,6 +273,41 @@ class GameItemTest {
         assertEquals(100, game.getScore());
         assertEquals('Z', board(game).getCell(17, 0).getType());
         assertEquals(1, occupied(board(game).getBoardCopy()));
+    }
+
+    @Test
+    void bombFallsThroughOneCellGapAndClearsTwoCellsOutward() {
+        Game game = itemGame(new Mino('I', Mino.BOMB), 0, 4);
+        Board board = board(game);
+
+        // 3열과 5열에 벽을 세우고, 4열에 한 칸짜리 통로를 만든다.
+        for (int row = 8; row <= 17; row++) {
+            board.setCell(row, 3, new Cell('J'));
+            board.setCell(row, 5, new Cell('J'));
+        }
+        board.setCell(15, 4, new Cell('Z'));              // 폭탄은 (14, 4)에 착지
+        board.setCell(16, 6, new Cell(Game.ATTACK_CELL)); // 폭발 범위의 오른쪽 아래 끝
+
+        game.harddrop();
+
+        assertTrue(game.getIsWaitingDelete());
+        assertEquals('B', board.getCell(14, 4).getType());
+        assertEquals(Game.ATTACK_CELL, board.getCell(16, 6).getType());
+
+        boolean[][] mask = game.getDeleteWaitingCells();
+        assertEquals(25, marked(mask));
+        assertTrue(mask[12][2]);
+        assertTrue(mask[16][6]);
+        assertFalse(mask[17][5]);
+
+        int scoreAfterDrop = game.getScore();
+        game.deleteCells();
+
+        assertTrue(board.getCell(14, 4).isEmpty());
+        assertTrue(board.getCell(16, 6).isEmpty());
+        assertEquals('J', board.getCell(17, 5).getType());
+        assertEquals(0, game.getLines());
+        assertEquals(scoreAfterDrop, game.getScore());
     }
 
     @Test

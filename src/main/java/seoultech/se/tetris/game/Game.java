@@ -19,6 +19,22 @@ public class Game {
     private static final int MIN_TICK_INTERVAL = 200;
     // 공격 대기열 줄 수
     private static final int MAX_ATTACK_LINES = 10;
+    // 아이템-폭탄 반경
+    private static final int BOMB_RADIUS = 2;
+    // 회전 보정 이동 칸 수 {행, 열} 0(U), 1(R), 2(D), 3(L)
+    private static final int[][][] JLSTZ_CW_KICKS = {
+        {{0, 0}, {0, -1}, {-1, -1}, { 2, 0}, { 2, -1}}, // 0 -> 1
+        {{0, 0}, {0,  1}, { 1,  1}, {-2, 0}, {-2,  1}}, // 1 -> 2
+        {{0, 0}, {0,  1}, {-1,  1}, { 2, 0}, { 2,  1}}, // 2 -> 3
+        {{0, 0}, {0, -1}, { 1, -1}, {-2, 0}, {-2, -1}}  // 3 -> 0
+    };
+    private static final int[][][] I_CW_KICKS = {
+        {{0, 0}, {0, -2}, {0,  1}, { 1, -2}, {-2,  1}}, // 0 -> 1
+        {{0, 0}, {0, -1}, {0,  2}, {-2, -1}, { 1,  2}}, // 1 -> 2
+        {{0, 0}, {0,  2}, {0, -1}, {-1,  2}, { 2, -1}}, // 2 -> 3
+        {{0, 0}, {0,  1}, {0, -2}, { 2,  1}, {-1, -2}}  // 3 -> 0
+    };
+    private static final int[][] IN_PLACE = {{0, 0}};
 
 
     // 필드
@@ -365,14 +381,22 @@ public class Game {
         if (!checkCanOperate() || currentMino == null || currentMino.getItemType() == Mino.WEIGHT) return;
 
         Cell[][] rotated = currentMino.createRotatedCW();
-        int row = currentMino.getRow();
-        int col = currentMino.getCol();
-        if (board.canPlace(rotated, row, col)) {
-            currentMino.setShape(rotated);
-        } 
-        else if (board.canPlace(rotated, row - 1, col)) {
-            currentMino.setShape(rotated);
-            currentMino.moveUp();
+        int state = currentMino.getRotationState();
+
+        int[][] kicks = switch (rotated.length) {
+            case 3 -> JLSTZ_CW_KICKS[state];
+            case 4 -> I_CW_KICKS[state];
+            default -> IN_PLACE;
+        };
+
+        for (int[] kick : kicks) {
+            int row = currentMino.getRow() + kick[0];
+            int col = currentMino.getCol() + kick[1];
+
+            if (board.canPlace(rotated, row, col)) {
+                currentMino.applyRotationCW(rotated, row, col);
+                return;
+            }
         }
     }
 
@@ -409,12 +433,9 @@ public class Game {
                             break;
                         
                         case Mino.BOMB:
-                            for (int i=0; i<3; i++) {
-                                for (int j=0; j<3; j++) {
-                                    if (r-1+i < 0 || r-1+i >= ROWS || c-1+j < 0 || c-1+j >= COLS) {
-                                        continue;
-                                    }
-                                    deleteWaitingCells[r-1+i][c-1+j] = true;
+                            for (int row = Math.max(0, r - BOMB_RADIUS); row <= Math.min(ROWS - 1, r + BOMB_RADIUS); row++) {
+                                for (int col = Math.max(0, c - BOMB_RADIUS); col <= Math.min(COLS - 1, c + BOMB_RADIUS); col++) {
+                                    deleteWaitingCells[row][col] = true;
                                 }
                             }
                             break;

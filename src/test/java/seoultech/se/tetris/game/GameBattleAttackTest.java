@@ -197,22 +197,44 @@ class GameBattleAttackTest {
     }
 
     @ParameterizedTest
-    @ValueSource(ints = {0, 1, 2})
-    void itemDeletionOnlyCountsNaturallyCompletedRowsForAttacks(int naturalRows) {
-        // 폭발 마스크가 생겨도 실제로 가득 찬 행만 공격 줄 수에 들어간다.
-        Game game = battle(new Mino('O', Mino.BOMB), 18, 4, true);
-        for (int row = Game.ROWS - naturalRows; row < Game.ROWS; row++) {
-            fillRow(board(game), row, 4, 5);
+    @ValueSource(ints = {0, 1})
+    void singleCellBombDoesNotCreateAnAttack(int naturalRows) {
+        Game game = battle(new Mino('O', Mino.BOMB), 19, 4, true);
+        if (naturalRows == 1) {
+            fillRow(board(game), 19, 4);
         }
 
         game.harddrop();
 
         assertTrue(game.getIsWaitingDelete());
-        assertTrue(game.getDeleteWaitingCells()[17][3]);
+        assertTrue(game.getDeleteWaitingCells()[17][2]);
+        game.deleteCells();
+
+        assertEquals(naturalRows, game.getLines());
+        assertEquals(0, game.attack().length);
+    }
+
+    @Test
+    void lineItemSendsOnlyNaturallyCompletedRows() {
+        // 세로 I로 18·19행을 완성하고, 16행은 L 효과로 삭제한다.
+        Mino mino = new Mino('I', Mino.LINE_CLEAR);
+        Cell[][] shape = new Mino('I').createRotatedCW();
+        shape[0][2] = new Cell('L', true, Mino.LINE_CLEAR);
+        mino.setShape(shape);
+
+        Game game = battle(mino, 16, 3, true);
+        fillRow(board(game), 18, 5);
+        fillRow(board(game), 19, 5);
+
+        game.harddrop();
+        assertTrue(game.getDeleteWaitingCells()[16][0]);
+        game.deleteCells();
+
+        assertEquals(3, game.getLines());
         boolean[][] attack = game.attack();
-        assertEquals(naturalRows == 2 ? 2 : 0, attack.length);
+        assertEquals(2, attack.length);
         for (boolean[] row : attack) {
-            assertArrayEquals(attackRow(4, 5), row);
+            assertArrayEquals(attackRow(5), row);
         }
     }
 

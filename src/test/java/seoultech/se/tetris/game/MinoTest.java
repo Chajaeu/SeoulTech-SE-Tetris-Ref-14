@@ -279,7 +279,7 @@ class MinoTest {
     @ParameterizedTest
     @CsvSource({
         "W, 2, 4, 3",
-        "B, 2, 2, 4",
+        "B, 1, 1, 4",
         "R, 1, 1, 4"
     })
     void independentItemsHaveExpectedShape(

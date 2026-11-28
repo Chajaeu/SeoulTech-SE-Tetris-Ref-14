@@ -22,92 +22,101 @@ class GameRotationTest {
         );
     }
 
-    // 2. 바닥 때문에 회전할 수 없으면 한 칸 위에서 회전한다.
+    // 2. 바닥에 닿은 T는 왼쪽 위로 한 칸 보정해서 회전한다.
     @Test
-    void floorCollisionUsesOneRowUpwardCorrection() {
+    void floorCollisionUsesUpLeftKick() {
         Game game = active(new Mino('T'), 18, 3);
 
-        assertRotationResult(
-                game,
-                17,
-                3,
-                ".X./.XX/.X."
-        );
+        assertRotationResult(game, 17, 2, ".X./.XX/.X.");
     }
 
-    // 3. 고정 블럭에 막힌 경우에도 위쪽 보정을 적용한다.
+    // 3. 제자리 회전이 막히고 왼쪽에서 회전할 수 있으면 왼쪽 후보를 사용한다.
     @Test
-    void fixedCellCollisionUsesUpwardCorrection() {
+    void fixedCellCollisionUsesFirstAvailableKick() {
         Game game = active(new Mino('T'), 5, 3);
-
-        // 현재 위치에서 회전하면 이 칸과 겹친다.
         board(game).setCell(7, 4, new Cell('J'));
 
-        assertRotationResult(
-                game,
-                4,
-                3,
-                ".X./.XX/.X."
-        );
+        assertRotationResult(game, 5, 2, ".X./.XX/.X.");
     }
 
-    // 4. 현재 위치와 한 칸 위가 모두 막히면 상태를 유지한다.
+    // 4. 후보 다섯 곳이 모두 막히면 위치, 모양, 방향을 유지한다.
     @Test
-    void rotationStopsWhenOneRowCorrectionAlsoFails() {
+    void rotationStopsWhenAllFiveCandidatesAreBlocked() {
         Game game = active(new Mino('T'), 5, 3);
-
-        // 제자리 회전을 막는 칸
         board(game).setCell(7, 4, new Cell('J'));
+        board(game).setCell(7, 3, new Cell('J'));
+        board(game).setCell(4, 3, new Cell('Z'));
 
-        // 한 칸 위에서의 회전을 막는 칸
-        board(game).setCell(5, 5, new Cell('Z'));
-
-        // 회전 전 블럭은 정상적으로 놓을 수 있는 상태다.
-        assertTrue(
-                board(game).canPlace(current(game), 5, 3)
-        );
-
-        // 두 칸 위에서는 회전할 수 있지만,
-        // 현재 규칙은 한 칸 위까지만 보정한다.
-        assertTrue(
-                board(game).canPlace(
-                        current(game).createRotatedCW(),
-                        3,
-                        3
-                )
-        );
-
+        assertTrue(board(game).canPlace(current(game), 5, 3));
         assertRotationRejected(game);
+        assertEquals(0, current(game).getRotationState());
     }
 
-    // 5. 위쪽 보정으로 실제 블럭 칸이 보드 위를 벗어나면 실패한다.
+    // 5. 위쪽 후보가 천장을 넘고 나머지 후보도 막히면 회전에 실패한다.
     @Test
-    void upwardCorrectionCannotCrossTopBoundary() {
+    void rotationCannotKickThroughCeiling() {
         Game game = active(new Mino('T'), 0, 3);
-
-        // 제자리 회전은 아래 장애물 때문에 불가능하다.
         board(game).setCell(2, 4, new Cell('Z'));
+        board(game).setCell(2, 3, new Cell('Z'));
 
-        // 한 칸 올리면 회전한 블럭의 실제 칸이 -1행으로 나간다.
         assertRotationRejected(game);
     }
 
-    // 6. 좌우 벽을 벗어나는 회전은 거부한다.
+    // 6. 세로 I가 왼쪽 벽과 오른쪽 벽에서 각각 안쪽으로 보정되어 회전한다.
     @ParameterizedTest
     @ValueSource(ints = {-2, 7})
-    void rotationCannotCrossSideWalls(int col) {
-        Mino mino = new Mino('I');
+    void verticalIRotatesAtEitherWall(int col) {
+        Game game = active(new Mino('I'), 3, 3);
 
-        // 세로 I로 준비한다.
-        mino.setShape(mino.createRotatedCW());
+        // 실제 회전 함수를 써서 세로 모양과 회전 상태를 함께 준비한다.
+        game.rotateCW();
+        assertEquals(1, current(game).getRotationState());
+        at(current(game), 3, col);
 
-        Game game = active(mino, 3, col);
+        assertTrue(board(game).canPlace(current(game), 3, col));
+        int expectedCol = col < 0 ? 0 : 6;
+        assertRotationResult(game, 3, expectedCol, "..../..../XXXX/....");
+        assertEquals(2, current(game).getRotationState());
+    }
 
-        // 세로 I 자체는 보드 안에 정상적으로 놓인다.
-        assertTrue(board(game).canPlace(mino, 3, col));
+    // 일반 블럭 7종은 빈 공간에서 네 번 회전하면 원래 모양과 방향으로 돌아온다.
+    @ParameterizedTest
+    @ValueSource(chars = {'I', 'J', 'L', 'S', 'T', 'Z', 'O'})
+    void fourClockwiseRotationsRestoreShapeAndDirection(char type) {
+        Game game = active(new Mino(type), 5, 3);
+        String original = contents(shapeOf(current(game)));
 
-        // 가로로 회전하면 왼쪽 또는 오른쪽 벽을 벗어난다.
-        assertRotationRejected(game);
+        for (int turn = 1; turn <= 4; turn++) {
+            game.rotateCW();
+            assertEquals(turn % 4, current(game).getRotationState());
+            assertEquals(5, current(game).getRow());
+            assertEquals(3, current(game).getCol());
+        }
+
+        assertEquals(original, contents(shapeOf(current(game))));
+    }
+
+    // 바닥의 가로 I는 앞의 네 후보가 막혀도 다섯 번째 후보에서 회전한다.
+    @Test
+    void horizontalIUsesFifthKickAtFloor() {
+        Game game = active(new Mino('I'), 18, 3);
+
+        assertRotationResult(game, 16, 4, "..X./..X./..X./..X.");
+        assertEquals(1, current(game).getRotationState());
+    }
+
+    // O는 제자리에서 회전하고, 부착된 L/C는 왼쪽 위에서 오른쪽 위로 이동한다.
+    @ParameterizedTest
+    @ValueSource(chars = {'L', 'C'})
+    void squareRotatesAttachedItemInPlace(char itemType) {
+        Mino mino = new Mino('O', itemType);
+        Cell[][] shape = shapeOf(new Mino('O'));
+        shape[0][0] = new Cell(itemType, true, itemType);
+        mino.setShape(shape);
+
+        Game game = active(mino, 18, 0);
+
+        assertRotationResult(game, 18, 0, "X" + itemType + "/XX");
     }
 
     // 7. 무게추는 접촉 여부와 관계없이 회전할 수 없다.
@@ -135,30 +144,22 @@ class GameRotationTest {
     void upwardCorrectionPreservesAttachedItem(char itemType) {
         Mino mino = new Mino('T', itemType);
 
-        // 아이템을 T의 위쪽 가운데 칸에 고정해서 준비한다.
+        // T의 위쪽 가운데 칸에 아이템을 둔다.
         Cell[][] initial = shapeOf(new Mino('T'));
         initial[0][1] = new Cell(itemType, true, itemType);
         mino.setShape(initial);
 
         Game game = active(mino, 18, 3);
+        assertRotationResult(game, 17, 2, ".X./.X" + itemType + "/.X.");
 
-        assertRotationResult(
-                game,
-                17,
-                3,
-                ".X./.X" + itemType + "/.X."
-        );
-
-        // 회전한 Mino 내부에서는 (1, 2)에 있어야 한다.
+        // 회전 후 아이템은 블럭 내부의 (1, 2)에 있다.
         Cell item = current(game).getCell(1, 2);
-
         assertEquals(itemType, item.getMark());
         assertTrue(item.isItem());
         assertEquals(itemType, item.getType());
 
-        // 보드 표시 위치는 (17 + 1, 3 + 2) = (18, 5).
-        Cell displayed = game.getDisplayBoard()[18][5];
-
+        // 보드에서는 (17 + 1, 2 + 2) = (18, 4)에 표시된다.
+        Cell displayed = game.getDisplayBoard()[18][4];
         assertEquals(itemType, displayed.getMark());
         assertTrue(displayed.isItem());
         assertEquals(itemType, displayed.getType());
