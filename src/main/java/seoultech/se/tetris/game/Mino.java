@@ -17,6 +17,8 @@ public class Mino {
     private int row;
     private int col;
 
+    private int rotationState = 0;
+
     private Cell[][] shape;
 
     private boolean contacted;  // 무게추 아이템 용, 범용성 有
@@ -152,6 +154,11 @@ public class Mino {
     public Cell getCell(int row, int col) { return shape[row][col]; }
     // 무게추용 접촉여부
     public boolean getContacted() {return contacted;}
+    // 블럭 방향(회전)
+    int getRotationState() {
+        return rotationState;
+    }
+
 
     // 블럭 위치 변경
     public void moveLeft() {col--;}
@@ -170,6 +177,13 @@ public class Mino {
             }
         }
         return rotated;
+    }
+
+    void applyRotationCW(Cell[][] rotated, int row, int col) {
+        shape = rotated;
+        this.row = row;
+        this.col = col;
+        rotationState = (rotationState + 1) % 4;
     }
 
     public void setShape(Cell[][] shape) {

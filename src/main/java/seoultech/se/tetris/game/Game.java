@@ -21,6 +21,20 @@ public class Game {
     private static final int MAX_ATTACK_LINES = 10;
     // 아이템-폭탄 반경
     private static final int BOMB_RADIUS = 2;
+    // 회전 보정 이동 칸 수 {행, 열} 0(U), 1(R), 2(D), 3(L)
+    private static final int[][][] JLSTZ_CW_KICKS = {
+        {{0, 0}, {0, -1}, {-1, -1}, { 2, 0}, { 2, -1}}, // 0 -> 1
+        {{0, 0}, {0,  1}, { 1,  1}, {-2, 0}, {-2,  1}}, // 1 -> 2
+        {{0, 0}, {0,  1}, {-1,  1}, { 2, 0}, { 2,  1}}, // 2 -> 3
+        {{0, 0}, {0, -1}, { 1, -1}, {-2, 0}, {-2, -1}}  // 3 -> 0
+    };
+    private static final int[][][] I_CW_KICKS = {
+        {{0, 0}, {0, -2}, {0,  1}, { 1, -2}, {-2,  1}}, // 0 -> 1
+        {{0, 0}, {0, -1}, {0,  2}, {-2, -1}, { 1,  2}}, // 1 -> 2
+        {{0, 0}, {0,  2}, {0, -1}, {-1,  2}, { 2, -1}}, // 2 -> 3
+        {{0, 0}, {0,  1}, {0, -2}, { 2,  1}, {-1, -2}}  // 3 -> 0
+    };
+    private static final int[][] IN_PLACE = {{0, 0}};
 
 
     // 필드
@@ -367,14 +381,22 @@ public class Game {
         if (!checkCanOperate() || currentMino == null || currentMino.getItemType() == Mino.WEIGHT) return;
 
         Cell[][] rotated = currentMino.createRotatedCW();
-        int row = currentMino.getRow();
-        int col = currentMino.getCol();
-        if (board.canPlace(rotated, row, col)) {
-            currentMino.setShape(rotated);
-        } 
-        else if (board.canPlace(rotated, row - 1, col)) {
-            currentMino.setShape(rotated);
-            currentMino.moveUp();
+        int state = currentMino.getRotationState();
+
+        int[][] kicks = switch (rotated.length) {
+            case 3 -> JLSTZ_CW_KICKS[state];
+            case 4 -> I_CW_KICKS[state];
+            default -> IN_PLACE;
+        };
+
+        for (int[] kick : kicks) {
+            int row = currentMino.getRow() + kick[0];
+            int col = currentMino.getCol() + kick[1];
+
+            if (board.canPlace(rotated, row, col)) {
+                currentMino.applyRotationCW(rotated, row, col);
+                return;
+            }
         }
     }
 
